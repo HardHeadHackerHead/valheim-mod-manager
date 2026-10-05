@@ -25,7 +25,7 @@ namespace ModUpdater
     {
         public const string Guid = "com.dhack.modupdater";
         public const string Name = "ModUpdater";
-        public const string Version = "2.9.0";
+        public const string Version = "2.9.2";
 
         private const string ScriptEngineGuid = "com.bepis.bepinex.scriptengine";
 
@@ -308,5 +308,15 @@ namespace ModUpdater
         {
             if (Plugin.WindowOpen && UnityEngine.GUI.GetNameOfFocusedControl() == "modsearch") __result = true;
         }
+    }
+}
+
+namespace ModUpdater
+{
+    // While one of our windows is open, the mouse wheel should scroll the window, not zoom the camera (or cycle the hotbar).
+    [HarmonyLib.HarmonyPatch(typeof(ZInput), nameof(ZInput.GetMouseScrollWheel))]
+    internal static class ZInput_GetMouseScrollWheel
+    {
+        private static void Postfix(ref float __result) { if (Plugin.WindowOpen) __result = 0f; }
     }
 }

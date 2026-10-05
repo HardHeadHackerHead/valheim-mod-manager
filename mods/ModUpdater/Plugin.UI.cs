@@ -234,7 +234,7 @@ namespace ModUpdater
             GUILayout.EndScrollView();
 
             DrawStatusBar();
-            GUI.DragWindow(new Rect(0, 0, 10000, 46)); // drag by the header
+            GUI.DragWindow(new Rect(0, 0, 10000, 96)); // drag by the header and the tab row (buttons on top still work)
         }
 
         private void DrawHeader()
@@ -752,9 +752,14 @@ namespace ModUpdater
 
             GUILayout.Space(6);
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Window size  ({_uiScale.Value:0.00}x)", _sBody, GUILayout.Width(170));
-            float scale = GUILayout.HorizontalSlider(_uiScale.Value, 0.75f, 1.5f, GUILayout.Width(220));
-            if (Mathf.Abs(scale - _uiScale.Value) > 0.005f) _uiScale.Value = Mathf.Round(scale * 20f) / 20f;
+            GUILayout.Label("Window size", _sBody, GUILayout.Width(110));
+            foreach (var preset in new[] { new KeyValuePair<string, float>("Small", 0.85f), new KeyValuePair<string, float>("Normal", 1f), new KeyValuePair<string, float>("Large", 1.25f), new KeyValuePair<string, float>("Huge", 1.5f) })
+            {
+                float value = preset.Value;
+                bool current = Mathf.Abs(_uiScale.Value - value) < 0.05f;
+                if (GUILayout.Button(preset.Key, current ? _sTabOn : _sTab, GUILayout.Width(80), GUILayout.Height(26)) && !current)
+                    Defer(() => { _uiScale.Value = value; _windowPlaced = false; }); // resize in one step, then centre it so it can never end up off screen
+            }
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();

@@ -24,7 +24,8 @@ An in-game mod manager for Valheim that finds mods on GitHub, installs them, kee
 | 🛍️ **Browse** | Every mod from every source you watch, grouped by source. Pick what you want and click **Install**. |
 | 👥 **Players** | See who in your world has which mods, and the mods your friends have that you do not, with a button to get them. |
 | 🌐 **Sources** | The main repos are built in, the community adds more through pull requests, and you can add your own. |
-| ⚙️ **Settings** | Auto-update on start, chat notifications, window size and developer tools. |
+| 🎛️ **Mod settings** | Change every installed mod's settings (keys, options) in one place, with a menu for each mod. |
+| ⚙️ **Manager** | Auto-update on start, chat notifications, window size and developer tools. |
 
 - ⚡ **Hot reload.** Updated mods reload in the running game. Mods that cannot do that say "Restart the game".
 - 🔓 **No login needed.** Public repos work without a GitHub token (a read-only token is only needed for private repos).

@@ -34,7 +34,8 @@ namespace ModUpdater
 
         private readonly List<Texture2D> _textures = new List<Texture2D>();
         private bool _stylesReady;
-        private GUIStyle _sWindow, _sCard, _sTitle, _sH2, _sName, _sBody, _sDim, _sVer, _sPill, _sBtn, _sBtnSmall, _sBtnPrimary, _sToggle, _sRule, _sTab, _sTabOn, _sBanner;
+        private GUIStyle _sWindow, _sCard, _sTitle, _sH2, _sName, _sBody, _sDim, _sVer, _sPill, _sBtn, _sBtnSmall, _sBtnPrimary, _sToggle, _sRule, _sTab, _sTabOn, _sBanner, _sTile;
+        private Texture2D _texWhite;
 
         private void ToggleWindow()
         {
@@ -158,6 +159,9 @@ namespace ModUpdater
             _sTabOn = ButtonStyle(new Color(0.28f, 0.22f, 0.12f), new Color(0.33f, 0.26f, 0.14f), new Color(0.33f, 0.26f, 0.14f), Gold, Gold);
             _sBanner = new GUIStyle(GUI.skin.box) { border = new RectOffset(2, 2, 2, 2), padding = new RectOffset(12, 12, 8, 8) };
             _sBanner.normal.background = Boxed(new Color(0.22f, 0.16f, 0.06f, 1f), new Color(0.75f, 0.55f, 0.15f, 1f));
+            _texWhite = Solid(Color.white);
+            _sTile = TextStyle(32, new Color(1f, 1f, 1f, 0.85f), FontStyle.Bold);
+            _sTile.alignment = TextAnchor.MiddleCenter;
             _sRule = new GUIStyle { margin = new RectOffset(0, 0, 8, 8), fixedHeight = 1 };
             _sRule.normal.background = Solid(new Color(0.35f, 0.29f, 0.2f, 1f));
         }
@@ -167,6 +171,7 @@ namespace ModUpdater
             foreach (Texture2D t in _textures) if (t != null) Destroy(t);
             _textures.Clear();
             _stylesReady = false;
+            DestroyCovers();
         }
 
         // ---- window ----------------------------------------------------------------------------
@@ -539,7 +544,11 @@ namespace ModUpdater
         private void DrawCard(Row row)
         {
             GUILayout.BeginVertical(_sCard);
+            string key = row.Remote != null ? row.Remote.guid : row.Local != null ? row.Local.Guid : row.Name;
+            SplitDescription(row.Description, out string summary, out string details);
             GUILayout.BeginHorizontal();
+            DrawCover(row);
+            GUILayout.Space(10);
 
             // left: name, version, description, notes
             GUILayout.BeginVertical(GUILayout.ExpandWidth(true));
@@ -551,7 +560,8 @@ namespace ModUpdater
             GUILayout.Label(VersionText(row), _sVer, GUILayout.ExpandWidth(false));
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
-            if (!string.IsNullOrEmpty(row.Description)) GUILayout.Label(row.Description, _sDim);
+            if (summary.Length > 0) GUILayout.Label(summary, _sDim);
+            else GUILayout.Label("No description yet.", _sDim);
             if (row.Feed != null && !row.Feed.Primary)
                 GUILayout.Label("From " + row.Feed.Label + "  (not your main source: you are trusting their code)", TextStyle(12, Warn, FontStyle.Normal, true));
             if (row.Remote != null && !string.IsNullOrEmpty(row.Remote.restart) && (row.Status == Status.UpdateAvailable || row.Status == Status.Rebuilt || row.Status == Status.NotInstalled))
@@ -597,10 +607,17 @@ namespace ModUpdater
                 if (Button(disabled ? "Enable" : "Disable", disabled ? 152 : 74, disabled, !_busy, small: !disabled)) Defer(() => SetEnabled(row, disabled));
                 GUILayout.EndHorizontal();
             }
+            if (details.Length > 0 && Button(_expanded.Contains(key) ? "Hide details" : "Details", 152, false, true, true))
+                Defer(() => { if (!_expanded.Remove(key)) _expanded.Add(key); });
             GUILayout.EndVertical();
 
             GUILayout.EndHorizontal();
-            GUILayout.EndVertical();
+            if (_expanded.Contains(key) && details.Length > 0)
+            {
+                GUILayout.Space(6);
+                GUILayout.Label(details, _sBody);
+            }
+            GUILayout.EndVertical(); // the card
             GUILayout.Space(6);
         }
 

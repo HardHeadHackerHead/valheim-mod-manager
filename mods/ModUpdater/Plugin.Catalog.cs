@@ -19,7 +19,7 @@ namespace ModUpdater
         private class LocalMod { public string Guid, Name, Version, Path; public bool InPlugins, Disabled; }
 
         /// <summary>One mod as described by manifest.json (written by publish.ps1).</summary>
-        private class RemoteMod { public string guid, name, version, description, notes, restart; public string[] files; public Feed Feed; }
+        private class RemoteMod { public string guid, name, version, description, notes, restart, cover; public string[] files; public Feed Feed; }
 
         /// <summary>
         /// A place mods are published: a GitHub folder holding manifest.json plus the DLL/PDB files (what publish.ps1 makes).
@@ -71,6 +71,7 @@ namespace ModUpdater
         private List<LocalMod> _local = new List<LocalMod>();
         private RemoteMod[] _remote = new RemoteMod[0];
         private readonly Dictionary<string, string> _remoteSha = new Dictionary<string, string>();
+        private readonly Dictionary<string, long> _remoteSize = new Dictionary<string, long>();
         private List<Row> _rows = new List<Row>();
         private string _statusLine = "Not checked yet.";
         private DateTime _lastRefresh = DateTime.MinValue;
@@ -201,6 +202,7 @@ namespace ModUpdater
                                        : $"{pending} update(s) available. Checked {_lastRefresh:HH:mm:ss}{via}.";
             foreach (Feed f in feeds.Where(f => f.Error != null)) _statusLine += $"  {f.Label}: {f.Error}";
             RequestPeerVersions();
+            StartCoroutine(LoadCovers()); // pictures for the mod cards (only new or changed ones are downloaded)
 
             if (notify && pending > 0)
                 Say($"{pending} mod update(s) available. Press {_hotkey.Value} to open the mod manager.");
@@ -247,6 +249,7 @@ namespace ModUpdater
             try
             {
                 var shas = new Dictionary<string, string>();
+                var sizes = new Dictionary<string, long>();
                 var mods = new List<RemoteMod>();
                 var guids = new HashSet<string>();
                 var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -256,7 +259,11 @@ namespace ModUpdater
                     Feed feed = pair.Key;
                     step = $"reading {feed.Label}'s file list";
                     foreach (JToken item in JArray.Parse(pair.Value[0]))
-                        if ((string)item["type"] == "file") shas[ShaKey(feed, (string)item["name"])] = (string)item["sha"];
+                        if ((string)item["type"] == "file")
+                        {
+                            shas[ShaKey(feed, (string)item["name"])] = (string)item["sha"];
+                            sizes[ShaKey(feed, (string)item["name"])] = (long?)item["size"] ?? 0L;
+                        }
 
                     step = $"reading {feed.Label}'s manifest.json";
                     foreach (JToken m in JObject.Parse(pair.Value[1])["mods"])
@@ -269,6 +276,7 @@ namespace ModUpdater
                             description = (string)m["description"],
                             notes = (string)m["notes"],
                             restart = (string)m["restart"], // set when this mod can't be hot-reloaded safely: the reason, shown to the player
+                            cover = CoverName((string)m["cover"]),
                             files = m["files"] != null ? m["files"].Select(f => (string)f).Where(IsPlainFileName).ToArray() : new string[0],
                             Feed = feed,
                         };
@@ -281,6 +289,8 @@ namespace ModUpdater
 
                 _remoteSha.Clear();
                 foreach (var kv in shas) _remoteSha[kv.Key] = kv.Value;
+                _remoteSize.Clear();
+                foreach (var kv in sizes) _remoteSize[kv.Key] = kv.Value;
                 _remote = mods.ToArray();
 
                 step = "scanning installed mods";

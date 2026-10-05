@@ -48,3 +48,6 @@ Anyone adds your feed in the mod manager (F7), "Mod sources": type `your-github-
 
 ## Getting watched by default
 Open a pull request to the mod manager repo that adds your repo to `sources.json` (see `CONTRIBUTING.md` there). Everyone running the manager will then see your mods in Browse.
+
+## Cover image
+Put a `cover.png` (or `cover.jpg`) in a mod's folder, about 640x360 and under 1 MB. `publish.ps1` copies it into `dist/` and the manager shows it on the mod's card. Without one, the card shows a coloured tile with the mod's first letter.

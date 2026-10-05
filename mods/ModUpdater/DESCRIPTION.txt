@@ -1,1 +1,7 @@
-This mod manager (F7). Updates itself like any other mod.
+The in-game mod manager (F7): browse mods from the sources you watch, install, update and disable them, and see what other players have.
+
+What it does
+- My mods lists what you have, updates first. Browse shows everything your sources offer, grouped by source.
+- Players shows who has which mods, and the mods other players have that you do not.
+- Sources: the main repos are built in, community sources come from pull requests to the manager's repo, and you can add your own.
+- Mods reload in-game with no restart; ones that cannot say so.

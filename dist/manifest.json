@@ -4,9 +4,10 @@
                      "guid":  "com.dhack.modupdater",
                      "name":  "ModUpdater",
                      "version":  "2.9.0",
-                     "description":  "This mod manager (F7). Updates itself like any other mod.",
+                     "description":  "The in-game mod manager (F7): browse mods from the sources you watch, install, update and disable them, and see what other players have.\n\nWhat it does\n- My mods lists what you have, updates first. Browse shows everything your sources offer, grouped by source.\n- Players shows who has which mods, and the mods other players have that you do not.\n- Sources: the main repos are built in, community sources come from pull requests to the manager\u0027s repo, and you can add your own.\n- Mods reload in-game with no restart; ones that cannot say so.",
                      "notes":  "The mod manager now has its own repo and a list of community sources: anyone can suggest their mod repo with a pull request, and everyone sees those mods in Browse (nothing installs until you click Install). New Browse tab, mods other players have, tabs and filters.",
                      "restart":  "",
+                     "cover":  "ModUpdater.cover.png",
                      "files":  [
                                    "ModUpdater.dll",
                                    "ModUpdater.pdb"

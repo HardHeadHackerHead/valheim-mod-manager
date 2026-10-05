@@ -44,8 +44,20 @@ foreach ($proj in Get-ChildItem (Join-Path $root "mods") -Directory) {
     $restartFile = Join-Path $proj.FullName "RESTART_REQUIRED.txt"
     $restart = if (Test-Path $restartFile) { (Get-Content $restartFile -Raw).Trim() } else { "" }
 
+    # Optional cover image (cover.png or cover.jpg in the mod folder), shown on the mod's card in the manager. Keep it small: about 640x360, under 1 MB.
+    $cover = ""
+    foreach ($ext in @("png", "jpg", "jpeg")) {
+        $coverSrc = Join-Path $proj.FullName "cover.$ext"
+        if (Test-Path $coverSrc) {
+            $cover = "$($proj.Name).cover.$ext"
+            Copy-Item $coverSrc (Join-Path $dist $cover) -Force
+            if ((Get-Item $coverSrc).Length -gt 1MB) { Write-Warning "$($proj.Name): the cover image is over 1 MB, so the manager will skip it" }
+            break
+        }
+    }
+
     $manifest += [ordered]@{
-        guid = $guid; name = $name; version = $ver; description = $desc; notes = $notes; restart = $restart
+        guid = $guid; name = $name; version = $ver; description = $desc; notes = $notes; restart = $restart; cover = $cover
         files = @("$($proj.Name).dll", "$($proj.Name).pdb")
     }
 }

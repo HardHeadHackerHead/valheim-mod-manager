@@ -3,9 +3,9 @@
                  {
                      "guid":  "com.dhack.modupdater",
                      "name":  "ModUpdater",
-                     "version":  "2.9.3",
+                     "version":  "2.9.4",
                      "description":  "The in-game mod manager (F7): browse mods from the sources you watch, install, update and disable them, and see what other players have.\n\nWhat it does\n- My mods lists what you have, updates first. Browse shows everything your sources offer, grouped by source.\n- Players shows who has which mods, and the mods other players have that you do not.\n- Sources: the main repos are built in, community sources come from pull requests to the manager\u0027s repo, and you can add your own.\n- Mods reload in-game with no restart; ones that cannot say so.",
-                     "notes":  "Linux support: the Open mods folder button uses the desktop\u0027s folder handler instead of Windows Explorer. Native Linux and Flatpak Steam have a Python installer, and builds support VALHEIM_DIR on both platforms.",
+                     "notes":  "Escape now closes the menu without opening the game\u0027s pause menu.",
                      "restart":  "",
                      "cover":  "ModUpdater.cover.png",
                      "files":  [

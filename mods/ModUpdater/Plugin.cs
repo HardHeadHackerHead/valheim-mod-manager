@@ -25,7 +25,7 @@ namespace ModUpdater
     {
         public const string Guid = "com.dhack.modupdater";
         public const string Name = "ModUpdater";
-        public const string Version = "2.9.3";
+        public const string Version = "2.9.4";
 
         private const string ScriptEngineGuid = "com.bepis.bepinex.scriptengine";
 
@@ -318,5 +318,21 @@ namespace ModUpdater
     internal static class ZInput_GetMouseScrollWheel
     {
         private static void Postfix(ref float __result) { if (Plugin.WindowOpen) __result = 0f; }
+    }
+}
+
+namespace ModUpdater
+{
+    // Escape closes our window, and only that: the game's own menu does not open (so the game is not paused by it).
+    [HarmonyLib.HarmonyPatch(typeof(Menu), "Update")]
+    internal static class Menu_Update_EscapeCloses
+    {
+        private static bool Prefix()
+        {
+            if (!(Plugin.WindowOpen)) return true;
+            if (!(ZInput.GetKeyDown(UnityEngine.KeyCode.Escape) || ZInput.GetButtonDown("JoyMenu"))) return true;
+            Plugin.WindowOpen = false;
+            return false; // skip the game's menu handling for this frame
+        }
     }
 }

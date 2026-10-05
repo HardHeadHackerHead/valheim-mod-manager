@@ -1,0 +1,1 @@
+The mod manager now has its own repo and a list of community sources: anyone can suggest their mod repo with a pull request, and everyone sees those mods in Browse (nothing installs until you click Install). New Browse tab, mods other players have, tabs and filters.

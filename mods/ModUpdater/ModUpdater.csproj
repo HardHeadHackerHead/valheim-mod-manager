@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ModUpdater</AssemblyName>
+    <RootNamespace>ModUpdater</RootNamespace>
+    <!-- Deploys to BepInEx\scripts like every other mod, so the manager can hot-reload (and update itself). -->
+  </PropertyGroup>
+</Project>

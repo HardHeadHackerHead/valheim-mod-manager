@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+
+# Local tooling state
+.claude/
+.quadflow/
+
+# Never commit secrets
+*.token
+*.cfg

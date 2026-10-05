@@ -1,0 +1,1 @@
+This mod manager (F7). Updates itself like any other mod.

@@ -660,6 +660,14 @@ namespace ModUpdater
 
         // ---- players ---------------------------------------------------------------------------
 
+        private class PlayerColumn { public string Name; public Dictionary<string, string> Versions; public bool HasManager; }
+
+        private static string Fit(string text, int chars) => text.Length <= chars ? text : text.Substring(0, Mathf.Max(1, chars - 1)) + "…";
+
+        /// <summary>
+        /// A grid of mods down the side and players across the top (you first). With the mods as rows, the width only depends on how many
+        /// players there are, so it always fits the window however many mods there are; the page scrolls down for the rest.
+        /// </summary>
         private void DrawPlayers()
         {
             DrawMissing();
@@ -677,41 +685,48 @@ namespace ModUpdater
                 return;
             }
 
-            const float nameWidth = 150f;
-            float colWidth = Mathf.Clamp((_window.width - nameWidth - 90f) / Mathf.Max(1, _remote.Length), 110f, 220f);
+            var columns = new List<PlayerColumn> { new PlayerColumn { Name = "You", Versions = VersionsOf(_local), HasManager = true } };
+            Dictionary<long, string> others = OtherPlayers();
+            foreach (var kv in others)
+            {
+                bool has = _peers.TryGetValue(kv.Key, out PeerMods peer);
+                columns.Add(new PlayerColumn { Name = kv.Value, Versions = has ? peer.Versions : null, HasManager = has });
+            }
+
+            const float nameWidth = 170f;
+            float usable = Mathf.Max(320f, _window.width - 90f);                  // minus the window and card padding and the scroll bar
+            float colWidth = Mathf.Clamp((usable - nameWidth) / columns.Count, 72f, 190f);
+            int chars = Mathf.Max(5, (int)(colWidth / 8.5f));
 
             GUILayout.BeginVertical(_sCard);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Player", _sDim, GUILayout.Width(nameWidth));
-            foreach (RemoteMod r in _remote) GUILayout.Label(r.name, _sDim, GUILayout.Width(colWidth));
+            GUILayout.Label("Mod", _sDim, GUILayout.Width(nameWidth));
+            foreach (PlayerColumn col in columns) GUILayout.Label(Fit(col.Name, chars), _sName, GUILayout.Width(colWidth));
             GUILayout.EndHorizontal();
 
-            DrawPlayerRow("You", VersionsOf(_local), colWidth, nameWidth);
-
-            Dictionary<long, string> others = OtherPlayers();
-            int behind = 0;
-            foreach (var kv in others)
+            var needsUpdate = new HashSet<int>();
+            foreach (RemoteMod r in _remote)
             {
-                if (_peers.TryGetValue(kv.Key, out PeerMods peer))
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(r.name, _sBody, GUILayout.Width(nameWidth));
+                for (int c = 0; c < columns.Count; c++)
                 {
-                    if (DrawPlayerRow(kv.Value, peer.Versions, colWidth, nameWidth)) behind++;
+                    PlayerColumn col = columns[c];
+                    if (!col.HasManager) { Pill(colWidth >= 100f ? "no manager" : "n/a", PillGrey, colWidth - 6f); needsUpdate.Add(c); }
+                    else if (!col.Versions.TryGetValue(r.guid, out string v)) { Pill("missing", PillRed, colWidth - 6f); needsUpdate.Add(c); }
+                    else if (CompareVersions(v, r.version) >= 0) Pill("v" + v, PillGreen, colWidth - 6f);
+                    else { Pill("old v" + v, PillAmber, colWidth - 6f); needsUpdate.Add(c); }
                 }
-                else
-                {
-                    behind++;
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(kv.Value, _sName, GUILayout.Width(nameWidth));
-                    Pill("no mod manager yet", PillRed, colWidth * _remote.Length - 6);
-                    GUILayout.EndHorizontal();
-                }
+                GUILayout.EndHorizontal();
             }
             GUILayout.EndVertical();
 
             GUILayout.Space(4);
+            int behind = needsUpdate.Count(c => c > 0); // the other players (you have the buttons above)
             if (others.Count == 0) GUILayout.Label("Nobody else is in this world right now.", _sDim);
             else if (behind == 0) GUILayout.Label("Everyone is up to date.", TextStyle(12, Good));
-            else GUILayout.Label($"{behind} player(s) need updates. They can press {_hotkey.Value} and click Update all.", TextStyle(12, Warn, FontStyle.Normal, true));
+            else GUILayout.Label($"{behind} player(s) are missing mods or need updates. They can press {_hotkey.Value} and click Update all.", TextStyle(12, Warn, FontStyle.Normal, true));
         }
 
         private static Dictionary<string, string> VersionsOf(IEnumerable<LocalMod> mods)
@@ -719,22 +734,6 @@ namespace ModUpdater
             var d = new Dictionary<string, string>();
             foreach (LocalMod m in mods) if (!m.Disabled) d[m.Guid] = m.Version; // (a plain loop: tolerates duplicate guids)
             return d;
-        }
-
-        /// <summary>One line per player; returns true if they're missing something or behind.</summary>
-        private bool DrawPlayerRow(string who, Dictionary<string, string> versions, float colWidth, float nameWidth)
-        {
-            bool behind = false;
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(who, _sName, GUILayout.Width(nameWidth));
-            foreach (RemoteMod r in _remote)
-            {
-                if (!versions.TryGetValue(r.guid, out string v)) { Pill("missing", PillRed, colWidth - 6); behind = true; }
-                else if (CompareVersions(v, r.version) >= 0) Pill("v" + v, PillGreen, colWidth - 6);
-                else { Pill($"v{v} (old)", PillAmber, colWidth - 6); behind = true; }
-            }
-            GUILayout.EndHorizontal();
-            return behind;
         }
 
         // ---- settings tab ----------------------------------------------------------------------

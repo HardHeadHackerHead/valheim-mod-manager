@@ -25,7 +25,7 @@ namespace ModUpdater
     {
         public const string Guid = "com.dhack.modupdater";
         public const string Name = "ModUpdater";
-        public const string Version = "2.9.4";
+        public const string Version = "2.9.5";
 
         private const string ScriptEngineGuid = "com.bepis.bepinex.scriptengine";
 

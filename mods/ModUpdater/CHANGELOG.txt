@@ -1,1 +1,1 @@
-Escape now closes the menu without opening the game's pause menu.
+The Players tab now has the mods down the side and the players across the top, so it always fits the window instead of being cut off on the right.

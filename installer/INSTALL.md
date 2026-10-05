@@ -1,5 +1,8 @@
 # Valheim mods: setup instructions (written for an AI agent)
 
+For native Linux and Flatpak Steam, use [INSTALL-LINUX.md](INSTALL-LINUX.md) and
+`install-linux.py` instead of the Windows instructions below.
+
 You are helping a Valheim player install a small set of friend-made mods on **Windows** (Steam). They have
 never installed mods before. Do the install for them and explain what you're doing in plain language.
 

@@ -34,6 +34,12 @@ An in-game mod manager for Valheim that finds mods on GitHub, installs them, kee
 
 **Windows (Steam), easiest:** follow [`installer/INSTALL.md`](installer/INSTALL.md). It is written so an AI assistant can do it for you, or run `installer/install.ps1` yourself. It installs BepInEx, ScriptEngine, this manager and the main mods.
 
+**Linux (native game, standard or Flatpak Steam):** follow
+[`installer/INSTALL-LINUX.md`](installer/INSTALL-LINUX.md). From this repo, run
+`python3 installer/install-linux.py` with Valheim closed, then set Steam's launch
+options to `./start_game_bepinex.sh %command%`. Install gameplay mods through F7,
+or supply `--mods-repo ../valheim-mods` to install their separate local checkout.
+
 **Already use BepInEx?** Copy `ModUpdater.dll` and `ModUpdater.pdb` from [`dist/`](dist/) into `BepInEx/scripts`, start the game and press **F7**.
 
 ## 🗺️ A quick tour
@@ -74,6 +80,22 @@ $env:VALHEIM_DIR = "C:\Program Files (x86)\Steam\steamapps\common\Valheim"
 dotnet build mods/ModUpdater -c Release     # builds and copies into BepInEx\scripts
 .\publish.ps1                                # writes dist/ (DLLs, cover and manifest.json)
 ```
+
+On Linux, the build detects common native and Flatpak Steam locations. Set
+`VALHEIM_DIR` for a custom library, or pass `-p:ValheimDir=/path/to/Valheim`:
+
+```bash
+export VALHEIM_DIR="$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/Valheim"
+dotnet build mods/ModUpdater -c Release
+pwsh -NoProfile -File ./publish.ps1   # PowerShell 7; publishing does not deploy to the game
+```
+
+Use `-p:DeployToGame=false` to compile without changing the installed mods. After
+pulling both repos, sync their published files with
+`python3 installer/install-linux.py --mods-only --mods-repo ../valheim-mods`.
+Press F6 after copying, or restart when the installer reports a mod that requires it.
+
+Installer regression checks: `python3 -m unittest discover -s tests -v`.
 
 <details>
 <summary>How it works under the hood</summary>

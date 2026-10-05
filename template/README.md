@@ -35,6 +35,13 @@ your-repo/
 4. `git add dist; git commit; git push`.
 5. Raise `Version` for every change people should receive. The manager compares versions, and also notices rebuilt files.
 
+On native Linux (including Flatpak Steam), set `VALHEIM_DIR` to the folder
+containing `valheim.x86_64`; common Steam locations are detected automatically.
+Use `dotnet build mods/ExampleMod -c Release` to build and deploy, then press F6.
+Run `pwsh -NoProfile -File ./publish.ps1` with PowerShell 7 to publish. Publishing
+only writes this repo's build output and `dist/`; it does not deploy to your game.
+For validation builds, pass `-p:DeployToGame=false`.
+
 ## Telling others
 Anyone adds your feed in the mod manager (F7), "Mod sources": type `your-github-name/your-repo`
 (`owner/repo@branch:folder` if you use a different branch or folder). They click Install themselves; nothing from an extra source is installed automatically.

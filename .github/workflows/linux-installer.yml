@@ -1,0 +1,16 @@
+name: Linux installer
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Exercise installer without game files or network
+        run: python3 -m unittest discover -s tests -v

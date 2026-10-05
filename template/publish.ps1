@@ -11,15 +11,15 @@ foreach ($proj in Get-ChildItem (Join-Path $root "mods") -Directory) {
     if (-not (Test-Path $csproj)) { continue }
 
     Write-Host "Building $($proj.Name)..."
-    dotnet build $csproj -c Release --nologo -v q
+    dotnet build $csproj -c Release --nologo -v q -p:DeployToGame=false
     if ($LASTEXITCODE -ne 0) { Write-Error "Build failed for $($proj.Name)"; exit 1 }
 
-    $out = Join-Path $proj.FullName "bin\Release\net48"
+    $out = Join-Path $proj.FullName "bin/Release/net48"
     Copy-Item (Join-Path $out "$($proj.Name).dll") $dist -Force
     Copy-Item (Join-Path $out "$($proj.Name).pdb") $dist -Force   # ScriptEngine needs the .pdb beside the DLL
 
     # Read guid/name/version from the mod's [BepInPlugin] constants, description from DESCRIPTION.txt (optional).
-    $src = (Get-ChildItem $proj.FullName -Filter *.cs -Recurse | Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
+    $src = (Get-ChildItem $proj.FullName -Filter *.cs -Recurse | Where-Object { $_.FullName -notmatch '[\\/](obj|bin)[\\/]' } |
             ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
     $guid = [regex]::Match($src, 'const string Guid\s*=\s*"([^"]+)"').Groups[1].Value
     $name = [regex]::Match($src, 'const string Name\s*=\s*"([^"]+)"').Groups[1].Value

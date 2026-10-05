@@ -770,11 +770,27 @@ namespace ModUpdater
             GUILayout.BeginVertical(_sCard);
             GUILayout.BeginHorizontal();
             if (Button("Reload all mods", 150, false, true)) Defer(() => { if (!ReloadScripts()) _statusLine = "ScriptEngine not found: press F6 instead."; });
-            if (Button("Open mods folder", 150, false, true)) Defer(() => System.Diagnostics.Process.Start("explorer.exe", _scriptsDir));
+            if (Button("Open mods folder", 150, false, true)) Defer(OpenModsFolder);
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             GUILayout.Label($"Press {_hotkey.Value} to open or close this window (change it in BepInEx\\config\\{Guid}.cfg).", _sDim);
             GUILayout.EndVertical();
+        }
+
+        private void OpenModsFolder()
+        {
+            try
+            {
+                // Unity delegates file URLs to the desktop's handler on Windows and Linux.
+                // Uri escapes spaces and special characters without invoking a command shell.
+                string folder = System.IO.Path.GetFullPath(_scriptsDir) + System.IO.Path.DirectorySeparatorChar;
+                Application.OpenURL(new Uri(folder).AbsoluteUri);
+            }
+            catch (Exception e)
+            {
+                Logger.LogWarning("Could not open the mods folder: " + e.Message);
+                _statusLine = "Could not open the mods folder: " + _scriptsDir;
+            }
         }
 
         /// <summary>A checkbox with a line of explanation under it. The change is applied from Update, not mid-draw.</summary>

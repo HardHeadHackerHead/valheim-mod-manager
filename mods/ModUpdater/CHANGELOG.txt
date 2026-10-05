@@ -1,1 +1,1 @@
-The Players tab now has the mods down the side and the players across the top, so it always fits the window instead of being cut off on the right.
+Fixes the Mod settings tab only listing Script Engine: it now finds every running mod (BepInEx keeps them on a hidden object that the first search skipped). Lists each mod with its number of settings, with a Settings button on its card.

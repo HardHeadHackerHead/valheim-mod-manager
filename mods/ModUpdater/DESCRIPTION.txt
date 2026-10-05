@@ -4,4 +4,5 @@ What it does
 - My mods lists what you have, updates first. Browse shows everything your sources offer, grouped by source.
 - Players shows who has which mods, and the mods other players have that you do not.
 - Sources: the main repos are built in, community sources come from pull requests to the manager's repo, and you can add your own.
+- Mod settings: change any loaded mod's settings in the game (switches, sliders, numbers, keys and colours), with a reset button for each.
 - Mods reload in-game with no restart; ones that cannot say so.

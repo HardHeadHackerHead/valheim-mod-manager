@@ -25,7 +25,7 @@ namespace ModUpdater
     {
         public const string Guid = "com.dhack.modupdater";
         public const string Name = "ModUpdater";
-        public const string Version = "2.9.5";
+        public const string Version = "2.10.2";
 
         private const string ScriptEngineGuid = "com.bepis.bepinex.scriptengine";
 
@@ -46,6 +46,7 @@ namespace ModUpdater
 
         private void Awake()
         {
+            Instance = this;
             _owner = Config.Bind("Repo", "Owner", "", "GitHub user or org that owns the repo.");
             _repo = Config.Bind("Repo", "Repo", "", "Repository name.");
             _branch = Config.Bind("Repo", "Branch", "main", "Branch to pull from.");
@@ -102,6 +103,7 @@ namespace ModUpdater
         // Undo everything we hooked into the game so the fresh copy starts clean.
         private void OnDestroy()
         {
+            if (Instance == this) Instance = null;
             _harmony?.UnpatchSelf();
             UnregisterRpc();
 
@@ -121,6 +123,7 @@ namespace ModUpdater
                 ToggleWindow();
             _needsSetup = !Configured || (_repoNeedsLogin && ActiveToken.Length == 0);
             WatchScripts();
+            if (WindowOpen || (!_msLogged && Time.unscaledTime > 8f)) { RefreshModConfigs(); SaveSettingsSoon(); } // the Mod settings tab's lists, kept up to date outside drawing
 
             // Once, when we first get into a world: quietly check and tell the player if updates are waiting.
             // (Skipped if CheckOnStart is on, because that already installs updates and reports them.)
@@ -306,7 +309,7 @@ namespace ModUpdater
     {
         private static void Postfix(ref bool __result)
         {
-            if (Plugin.WindowOpen && UnityEngine.GUI.GetNameOfFocusedControl() == "modsearch") __result = true;
+            if (Plugin.WindowOpen && (UnityEngine.GUI.GetNameOfFocusedControl() == "modsearch" || Plugin.TypingInSettings)) __result = true;
         }
     }
 }
@@ -331,6 +334,7 @@ namespace ModUpdater
         {
             if (!(Plugin.WindowOpen)) return true;
             if (!(ZInput.GetKeyDown(UnityEngine.KeyCode.Escape) || ZInput.GetButtonDown("JoyMenu"))) return true;
+            if (Plugin.CancelCapture()) return false; // Escape while choosing a key just cancels that
             Plugin.WindowOpen = false;
             return false; // skip the game's menu handling for this frame
         }

@@ -208,7 +208,7 @@ namespace ModUpdater
             GUI.matrix = previousMatrix; // leave the drawing scale as we found it, for whatever draws after us
         }
 
-        private enum Tab { Mods, Browse, Players, Sources, Settings }
+        private enum Tab { Mods, Browse, Players, Sources, ModSettings, Settings }
 
         private Tab _tab = Tab.Mods;
         private Filter _filter = Filter.All;
@@ -229,6 +229,7 @@ namespace ModUpdater
                 case Tab.Browse: DrawMods(true); break;
                 case Tab.Players: DrawPlayers(); break;
                 case Tab.Sources: DrawFeeds(); GUILayout.Space(14); DrawLogin(); break;
+                case Tab.ModSettings: DrawModSettings(); break;
                 case Tab.Settings: DrawSettings(); break;
             }
             GUILayout.EndScrollView();
@@ -276,7 +277,8 @@ namespace ModUpdater
             TabButton(Tab.Browse, "Browse");
             TabButton(Tab.Players, "Players");
             TabButton(Tab.Sources, "Sources");
-            TabButton(Tab.Settings, "Settings");
+            TabButton(Tab.ModSettings, "Mod settings");
+            TabButton(Tab.Settings, "Manager");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
         }
@@ -607,6 +609,8 @@ namespace ModUpdater
                 if (Button(disabled ? "Enable" : "Disable", disabled ? 152 : 74, disabled, !_busy, small: !disabled)) Defer(() => SetEnabled(row, disabled));
                 GUILayout.EndHorizontal();
             }
+            string settingsGuid = row.Local != null ? row.Local.Guid : row.Remote != null ? row.Remote.guid : null;
+            if (settingsGuid != null && HasSettings(settingsGuid) && Button("Settings", 152, false, true, true)) Defer(() => OpenSettingsFor(settingsGuid));
             if (details.Length > 0 && Button(_expanded.Contains(key) ? "Hide details" : "Details", 152, false, true, true))
                 Defer(() => { if (!_expanded.Remove(key)) _expanded.Add(key); });
             GUILayout.EndVertical();

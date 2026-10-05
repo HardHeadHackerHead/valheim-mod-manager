@@ -1,1 +1,3 @@
+Linux support: the Open mods folder button uses the desktop's folder handler instead of Windows Explorer. Native Linux and Flatpak Steam have a Python installer, and builds support VALHEIM_DIR on both platforms.
+
 The mouse wheel now scrolls the window instead of zooming the camera. Window size is now four buttons (Small to Huge) instead of a slider that made the window jump, and the window can be dragged by the tab row too.

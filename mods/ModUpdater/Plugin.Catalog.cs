@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using BepInEx;
+using BepInEx.Bootstrap;
 using Mono.Cecil;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -319,7 +321,7 @@ namespace ModUpdater
             var rows = new List<Row>();
             foreach (RemoteMod r in _remote)
             {
-                LocalMod local = _local.FirstOrDefault(l => l.Guid == r.guid);
+                LocalMod local = LiveCopy(r.guid);
                 var row = new Row
                 {
                     Name = r.name, Description = r.description, Notes = r.notes, RemoteVersion = r.version,
@@ -346,15 +348,34 @@ namespace ModUpdater
             _rows = rows;
         }
 
+        /// <summary>
+        /// The copy of a mod that actually runs. BepInEx loads BepInEx\plugins at startup, before ScriptEngine, and ScriptEngine
+        /// refuses a GUID that's already loaded, so an enabled copy in plugins wins over one in scripts.
+        /// </summary>
+        private LocalMod LiveCopy(string guid) =>
+            _local.FirstOrDefault(l => l.Guid == guid && l.InPlugins && !l.Disabled) ?? _local.FirstOrDefault(l => l.Guid == guid);
+
+        /// <summary>Where a mod's files go: next to its copy in BepInEx\plugins if that's where it lives, otherwise scripts.</summary>
+        private string InstallDir(string guid)
+        {
+            LocalMod live = LiveCopy(guid);
+            return live != null && live.InPlugins && !live.Disabled ? Path.GetDirectoryName(live.Path) : _scriptsDir;
+        }
+
+        /// <summary>The version BepInEx is running right now, or null if it isn't loaded.</summary>
+        private static string RunningVersion(string guid) =>
+            Chainloader.PluginInfos.TryGetValue(guid, out PluginInfo info) && info.Instance != null ? info.Metadata.Version.ToString() : null;
+
         private bool NeedsUpdate(Row r) =>
             r.Status == Status.NotInstalled || r.Status == Status.UpdateAvailable ||
             (r.Status == Status.Rebuilt && !_developerMode.Value);
 
         private bool FilesMatch(RemoteMod r)
         {
+            string dir = InstallDir(r.guid);
             foreach (string file in r.files ?? new string[0])
             {
-                string path = Path.Combine(_scriptsDir, file);
+                string path = Path.Combine(dir, file);
                 if (!_remoteSha.TryGetValue(ShaKey(r.Feed, file), out string sha)) continue;
                 if (!File.Exists(path) || LocalSha(path) != sha) return false;
             }
@@ -385,6 +406,48 @@ namespace ModUpdater
 
         // ---- installing ------------------------------------------------------------------------
 
+        // Old files we moved out of the way. Neither BepInEx nor ScriptEngine loads them (they only load *.dll), and the
+        // next launch deletes them (a DLL loaded from plugins can't be deleted while the game runs).
+        private const string AsideSuffix = ".modupdater-old";
+
+        /// <summary>Write a file via a temp file, so ScriptEngine never sees a half-written DLL.</summary>
+        private static void ReplaceFile(string path, byte[] data)
+        {
+            string tmp = path + ".part";
+            try
+            {
+                File.WriteAllBytes(tmp, data);
+                if (File.Exists(path))
+                {
+                    try { File.Delete(path); }
+                    catch (Exception) { MoveAside(path); } // in use (loaded from plugins): renaming usually still works
+                }
+                File.Move(tmp, path);
+            }
+            catch
+            {
+                try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+                throw;
+            }
+        }
+
+        private static void MoveAside(string path) => File.Move(path, $"{path}.{DateTime.Now.Ticks}{AsideSuffix}");
+
+        /// <summary>At startup: delete the old files earlier updates moved aside (one that's somehow still in use is skipped).</summary>
+        private void CleanUpMovedAside()
+        {
+            foreach (string dir in new[] { _pluginsDir, _scriptsDir })
+            {
+                if (!Directory.Exists(dir)) continue;
+                try
+                {
+                    foreach (string old in Directory.GetFiles(dir, "*" + AsideSuffix, SearchOption.AllDirectories))
+                        try { File.Delete(old); } catch { /* still in use somehow: try again next launch */ }
+                }
+                catch (Exception e) { Logger.LogWarning("Couldn't tidy up old mod files: " + e.Message); }
+            }
+        }
+
         private IEnumerator InstallRoutine(List<RemoteMod> mods)
         {
             if (_busy || mods.Count == 0) yield break;
@@ -398,9 +461,13 @@ namespace ModUpdater
                 foreach (RemoteMod mod in mods)
                 {
                     _statusLine = $"Downloading {mod.name}...";
+                    // Update the mod where it lives. A copy in BepInEx\plugins is only loaded at startup, so that needs a restart.
+                    LocalMod live = LiveCopy(mod.guid);
+                    bool inPlugins = live != null && live.InPlugins && !live.Disabled;
+                    string dir = InstallDir(mod.guid);
                     foreach (string file in mod.files ?? new string[0])
                     {
-                        string localPath = Path.Combine(_scriptsDir, file);
+                        string localPath = Path.Combine(dir, file);
                         if (_remoteSha.TryGetValue(ShaKey(mod.Feed, file), out string sha) && File.Exists(localPath) &&
                             LocalSha(localPath) == sha) continue;
 
@@ -408,14 +475,29 @@ namespace ModUpdater
                         yield return Get($"{mod.Feed.Api}/{file}?ref={mod.Feed.Branch}", "application/vnd.github.raw+json", (t, b, e) => { data = b; error = e; }, mod.Feed.Primary);
                         if (error != null || data == null) { failure = $"{file}: {error}"; yield break; }
 
-                        // Write to a temp file then move, so ScriptEngine never sees a half-written DLL.
-                        string tmp = localPath + ".part";
-                        File.WriteAllBytes(tmp, data);
-                        if (File.Exists(localPath)) File.Delete(localPath);
-                        File.Move(tmp, localPath);
+                        try { ReplaceFile(localPath, data); }
+                        catch (Exception e)
+                        {
+                            failure = $"{file}: {e.Message}" + (inPlugins ? $" (it's in use in {dir}: quit the game and replace it there by hand)" : "");
+                        }
+                        if (failure != null) yield break;
                     }
+
+                    if (inPlugins)
+                    {
+                        // The plugins file has a different name than ours: move it aside too, so only the new one loads next time.
+                        string dll = (mod.files ?? new string[0]).FirstOrDefault(f => f.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));
+                        if (dll != null && !string.Equals(Path.GetFileName(live.Path), dll, StringComparison.OrdinalIgnoreCase))
+                            try { MoveAside(live.Path); } catch (Exception e) { Logger.LogWarning($"Couldn't move the old {live.Path} aside: {e.Message}"); }
+
+                        // A copy in scripts (an older manager put updates there by mistake) can never load next to the plugins one.
+                        foreach (LocalMod stray in _local.Where(l => l.Guid == mod.guid && !l.InPlugins && !l.Disabled))
+                            try { File.Delete(stray.Path); string pdb = Path.ChangeExtension(stray.Path, ".pdb"); if (File.Exists(pdb)) File.Delete(pdb); }
+                            catch (Exception e) { Logger.LogWarning($"Couldn't remove the unused copy {stray.Path}: {e.Message}"); }
+                    }
+
                     installed.Add(mod.name);
-                    if (!string.IsNullOrEmpty(mod.restart)) { RestartPending.Add(mod.guid); needRestart.Add(mod.name); } // can't be hot-reloaded safely
+                    if (inPlugins || !string.IsNullOrEmpty(mod.restart)) { RestartPending.Add(mod.guid); needRestart.Add(mod.name); } // can't be hot-reloaded safely
                     else { ModFile modFile = FileOf(mod); if (modFile != null) toReload.Add(modFile); }
                 }
             }
@@ -466,6 +548,14 @@ namespace ModUpdater
             BuildRows();
             BroadcastVersions();
             _statusLine = $"{row.Name} {(enable ? "enabled" : "disabled")}";
+
+            // A mod that can't be hot-reloaded is also not (un)loaded mid-game: the renamed file counts from the next launch.
+            if (NeedsRestart(row.Local.Guid) || RestartOnly(row.Local.Guid))
+            {
+                RestartPending.Add(row.Local.Guid);
+                _statusLine += ": restart the game to apply it";
+                return;
+            }
 
             string dll = enable ? row.Local.Path.Substring(0, row.Local.Path.Length - ".disabled".Length) : row.Local.Path;
             var file = new ModFile { Guid = row.Local.Guid, Path = dll };

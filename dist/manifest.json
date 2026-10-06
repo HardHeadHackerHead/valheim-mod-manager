@@ -3,9 +3,9 @@
                  {
                      "guid":  "com.dhack.modupdater",
                      "name":  "ModUpdater",
-                     "version":  "2.10.2",
+                     "version":  "2.10.3",
                      "description":  "The in-game mod manager (F7): browse mods from the sources you watch, install, update and disable them, and see what other players have.\n\nWhat it does\n- My mods lists what you have, updates first. Browse shows everything your sources offer, grouped by source.\n- Players shows who has which mods, and the mods other players have that you do not.\n- Sources: the main repos are built in, community sources come from pull requests to the manager\u0027s repo, and you can add your own.\n- Mod settings: change any loaded mod\u0027s settings in the game (switches, sliders, numbers, keys and colours), with a reset button for each.\n- Mods reload in-game with no restart; ones that cannot say so.",
-                     "notes":  "Fixes the Mod settings tab only listing Script Engine: it now finds every running mod (BepInEx keeps them on a hidden object that the first search skipped). Lists each mod with its number of settings, with a Settings button on its card.",
+                     "notes":  "Mods that need a game restart are no longer reloaded mid-game right after the manager updates them, and updating a mod installed in BepInEx/plugins now replaces that copy (it takes effect after a restart) instead of showing Up to date while the old version keeps running. A card now says when an older version than the one on disk is still running.",
                      "restart":  "",
                      "cover":  "ModUpdater.cover.png",
                      "files":  [

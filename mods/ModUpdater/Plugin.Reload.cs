@@ -48,9 +48,22 @@ namespace ModUpdater
             return true;
         }
 
+        /// <summary>
+        /// Mods that must not be hot-reloaded now: the manager installed (or toggled) a copy that is waiting for a game restart, because
+        /// its manifest says it can't be reloaded safely or it lives in BepInEx\plugins. A mod author's own rebuild of such a mod
+        /// (Developer Mode) still reloads: that is how they test it.
+        /// </summary>
+        private bool NeedsRestart(string guid) => RestartPending.Contains(guid);
+
+        /// <summary>The manifest says this mod can't be (un)loaded mid-game safely.</summary>
+        private bool RestartOnly(string guid) => _remote.Any(r => r.guid == guid && !string.IsNullOrEmpty(r.restart));
+
         /// <summary>Unload and reload just these mods. This copy of the manager goes last if it's in the list.</summary>
         private bool ReloadMods(List<ModFile> mods)
         {
+            // Never hot-reload a mod that needs a restart: its new file is picked up when the game starts.
+            foreach (ModFile mod in mods.Where(m => NeedsRestart(m.Guid))) { RestartPending.Add(mod.Guid); Logger.LogInfo($"Not reloading {mod.Guid}: it needs a game restart"); }
+            mods = mods.Where(m => !NeedsRestart(m.Guid)).ToList();
             if (mods.Count == 0) return true;
             try
             {
@@ -59,7 +72,8 @@ namespace ModUpdater
                 foreach (ModFile mod in mods.OrderBy(m => m.Guid == Guid ? 1 : 0))
                 {
                     if (!File.Exists(mod.Path)) continue;
-                    if (!UnloadScriptMod(mod.Guid, manager)) return ReloadScripts();
+                    // A copy in BepInEx\plugins holds the GUID, so ScriptEngine would refuse this one (a full reload too). Leave it.
+                    if (!UnloadScriptMod(mod.Guid, manager)) { RestartPending.Add(mod.Guid); Logger.LogWarning($"Not reloading {mod.Guid}: a copy in BepInEx\\plugins is running"); continue; }
                     MarkLoaded(mod.Path);
                     loadDll.Invoke(engine, new object[] { mod.Path, manager });
                 }
@@ -134,6 +148,7 @@ namespace ModUpdater
             if (!_autoReload.Value || !_developerMode.Value || _busy) return;
 
             var changed = new List<ModFile>();
+            var waiting = new List<string>();
             foreach (string dll in Directory.GetFiles(_scriptsDir, "*.dll"))
             {
                 DateTime now = StampOf(dll);
@@ -146,9 +161,18 @@ namespace ModUpdater
 
                 LocalMod mod = ReadPlugin(dll);
                 w.Stamp = now;
-                if (mod != null) changed.Add(new ModFile { Guid = mod.Guid, Path = dll });
+                if (mod == null) continue;
+                if (NeedsRestart(mod.Guid)) { RestartPending.Add(mod.Guid); waiting.Add(System.IO.Path.GetFileNameWithoutExtension(dll)); continue; } // new file, but only a restart may load it
+                changed.Add(new ModFile { Guid = mod.Guid, Path = dll });
             }
 
+            if (waiting.Count > 0)
+            {
+                ScanLocal();
+                BuildRows();
+                _statusLine = $"{string.Join(", ", waiting)} changed on disk: restart the game to load the new version (it can't be reloaded while playing).";
+                Say(_statusLine);
+            }
             if (changed.Count == 0) return;
 
             ScanLocal();
@@ -162,6 +186,7 @@ namespace ModUpdater
         private void ReloadOne(Row row)
         {
             if (row.Local == null || row.Local.InPlugins || row.Local.Disabled) return;
+            if (NeedsRestart(row.Local.Guid)) { _statusLine = $"{row.Name} needs a game restart: it can't be reloaded while playing."; return; }
             ScanLocal();
             BuildRows();
             _statusLine = $"Reloaded {row.Name}";

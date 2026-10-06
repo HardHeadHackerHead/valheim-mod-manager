@@ -30,6 +30,7 @@ namespace ModUpdater
         private Vector2 _scroll;
         private string _confirmRevert;      // which mod's "Use GitHub copy" is waiting for a second click
         private float _confirmRevertAt;
+        private float _confirmReloadAllAt = -10f; // when "Reload all mods" was first clicked while a mod needing a restart is installed
         private Action _deferred;   // clicks are run from Update, not mid-draw, so the layout never changes under IMGUI
 
         private readonly List<Texture2D> _textures = new List<Texture2D>();
@@ -297,7 +298,7 @@ namespace ModUpdater
             {
                 string names = string.Join(", ", _rows.Where(r => r.Remote != null && waiting.Contains(r.Remote.guid)).Select(r => r.Name).ToArray());
                 GUILayout.BeginVertical(_sBanner);
-                GUILayout.Label("Restart the game to finish updating" + (names.Length > 0 ? ": " + names : "") + ". Until then the old version keeps running.", TextStyle(13, Warn, FontStyle.Bold, true));
+                GUILayout.Label("Restart the game to finish" + (names.Length > 0 ? ": " + names : "") + ". Until then the old version keeps running.", TextStyle(13, Warn, FontStyle.Bold, true));
                 GUILayout.EndVertical();
                 GUILayout.Space(8);
             }
@@ -568,6 +569,10 @@ namespace ModUpdater
                 GUILayout.Label("From " + row.Feed.Label + "  (not your main source: you are trusting their code)", TextStyle(12, Warn, FontStyle.Normal, true));
             if (row.Remote != null && !string.IsNullOrEmpty(row.Remote.restart) && (row.Status == Status.UpdateAvailable || row.Status == Status.Rebuilt || row.Status == Status.NotInstalled))
                 GUILayout.Label("Takes effect after restarting the game. " + row.Remote.restart, TextStyle(12, Warn, FontStyle.Normal, true));
+            else if (row.Local != null && row.Local.InPlugins && !row.Local.Disabled && (row.Status == Status.UpdateAvailable || row.Status == Status.Rebuilt))
+                GUILayout.Label("Installed in BepInEx\\plugins, which only loads when the game starts: the update takes effect after a restart.", TextStyle(12, Warn, FontStyle.Normal, true));
+            else if (row.Remote != null && !string.IsNullOrEmpty(row.Remote.restart) && row.CanToggle)
+                GUILayout.Label("Updates and on/off changes take effect after a game restart. " + row.Remote.restart, _sDim);
             if (!string.IsNullOrEmpty(row.Notes) && (row.Status == Status.UpdateAvailable || row.Status == Status.NotInstalled))
                 GUILayout.Label("New in v" + row.RemoteVersion + ":  " + row.Notes, TextStyle(12, TextMain, FontStyle.Normal, true));
             GUILayout.EndVertical();
@@ -605,7 +610,9 @@ namespace ModUpdater
             {
                 bool disabled = row.Status == Status.Disabled;
                 GUILayout.BeginHorizontal();
-                if (!disabled && Button("Reload", 74, false, !_busy, small: true)) Defer(() => ReloadOne(row));
+                // A copy waiting for a restart can't be reloaded: the button stays, greyed out, with the reason on the card.
+                bool restartOnly = NeedsRestart(row.Local.Guid);
+                if (!disabled && Button("Reload", 74, false, !_busy && !restartOnly, small: true)) Defer(() => ReloadOne(row));
                 if (Button(disabled ? "Enable" : "Disable", disabled ? 152 : 74, disabled, !_busy, small: !disabled)) Defer(() => SetEnabled(row, disabled));
                 GUILayout.EndHorizontal();
             }
@@ -644,7 +651,12 @@ namespace ModUpdater
             if (row.Remote != null && RestartPending.Contains(row.Remote.guid)) { text = "Restart the game"; color = PillAmber; return; }
             switch (row.Status)
             {
-                case Status.UpToDate: text = "Up to date"; color = PillGreen; break;
+                case Status.UpToDate:
+                    // The file is current, but if an older copy is what's actually running, the update hasn't taken effect yet.
+                    string running = RunningVersion(row.Remote.guid);
+                    if (running != null && CompareVersions(running, row.LocalVersion) < 0) { text = "Old version running"; color = PillAmber; }
+                    else { text = "Up to date"; color = PillGreen; }
+                    break;
                 case Status.UpdateAvailable: text = "Update available"; color = PillAmber; break;
                 case Status.NotInstalled: text = "Not installed"; color = PillRed; break;
                 case Status.LocalNewer: text = "Newer than GitHub"; color = PillBlue; break;
@@ -772,10 +784,19 @@ namespace ModUpdater
             GUILayout.Space(2);
             GUILayout.BeginVertical(_sCard);
             GUILayout.BeginHorizontal();
-            if (Button("Reload all mods", 150, false, true)) Defer(() => { if (!ReloadScripts()) _statusLine = "ScriptEngine not found: press F6 instead."; });
+            // A full reload also reloads mods that need a restart, so with any of those installed, ask twice (times out after 5s).
+            string[] restartOnly = _local.Where(l => !l.InPlugins && !l.Disabled && NeedsRestart(l.Guid)).Select(l => l.Name).Distinct().ToArray();
+            bool sureAll = restartOnly.Length > 0 && Time.realtimeSinceStartup - _confirmReloadAllAt < 5f;
+            if (Button(sureAll ? "Reload anyway?" : "Reload all mods", 150, false, true))
+            {
+                if (restartOnly.Length > 0 && !sureAll) Defer(() => _confirmReloadAllAt = Time.realtimeSinceStartup);
+                else Defer(() => { _confirmReloadAllAt = -10f; if (!ReloadScripts()) _statusLine = "ScriptEngine not found: press F6 instead."; });
+            }
             if (Button("Open mods folder", 150, false, true)) Defer(OpenModsFolder);
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
+            if (restartOnly.Length > 0)
+                GUILayout.Label($"Needs a game restart, not a reload: {string.Join(", ", restartOnly)}. Reloading all mods reloads these too.", TextStyle(12, Warn, FontStyle.Normal, true));
             GUILayout.Label($"Press {_hotkey.Value} to open or close this window (change it in BepInEx\\config\\{Guid}.cfg).", _sDim);
             GUILayout.EndVertical();
         }

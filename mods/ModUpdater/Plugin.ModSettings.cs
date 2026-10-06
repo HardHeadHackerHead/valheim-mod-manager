@@ -162,7 +162,8 @@ namespace ModUpdater
             _msSearch = GUILayout.TextField(_msSearch ?? "", 40, GUILayout.Width(200), GUILayout.Height(26));
             GUILayout.FlexibleSpace();
             LocalMod local = _local.FirstOrDefault(l => l.Guid == mod.Guid && !l.InPlugins && !l.Disabled);
-            if (local != null && Button("Reload this mod", 150, false, !_busy, true))
+            bool restartOnly = local != null && NeedsRestart(local.Guid); // greyed out, and says why
+            if (local != null && Button(restartOnly ? "Needs a game restart" : "Reload this mod", 150, false, !_busy && !restartOnly, true))
                 Defer(() => ReloadMods(new List<ModFile> { new ModFile { Guid = local.Guid, Path = local.Path } }));
             GUILayout.EndHorizontal();
             GUILayout.Space(6);

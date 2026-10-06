@@ -25,7 +25,7 @@ namespace ModUpdater
     {
         public const string Guid = "com.dhack.modupdater";
         public const string Name = "ModUpdater";
-        public const string Version = "2.10.2";
+        public const string Version = "2.10.3";
 
         private const string ScriptEngineGuid = "com.bepis.bepinex.scriptengine";
 
@@ -79,6 +79,7 @@ namespace ModUpdater
             string warmUp = ActiveToken; // if (and only if) the GitHub CLI was explicitly allowed, starts its lookup now so it's ready by F7
             _harmony = new Harmony(Guid);
             _harmony.PatchAll();
+            CleanUpMovedAside(); // old files earlier updates moved aside (one still loaded from plugins just stays until next time)
             ScanLocal();
             BuildRows();
             BaselineWatch(); // whatever is in scripts right now is what's loaded

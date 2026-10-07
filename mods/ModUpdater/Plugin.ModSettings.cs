@@ -32,6 +32,7 @@ namespace ModUpdater
         private ConfigEntryBase _capturing;                                          // the setting waiting for a key press
         private readonly Dictionary<ConfigEntryBase, string> _msText = new Dictionary<ConfigEntryBase, string>(); // what a text box shows while you type
         private readonly HashSet<ConfigFile> _msDirty = new HashSet<ConfigFile>();
+        private readonly HashSet<ConfigEntryBase> _msRevealed = new HashSet<ConfigEntryBase>(); // secrets you pressed Show on
         private float _msLastEdit;
 
         /// <summary>True while a settings text box has focus or a key is being captured, so other mods ignore the keys you type.</summary>
@@ -211,8 +212,21 @@ namespace ModUpdater
                 GUILayout.Label(names[Mathf.Max(0, at)], _sBody, GUILayout.Width(150));
                 if (GUILayout.Button(">", _sBtnSmall, GUILayout.Width(28), GUILayout.Height(26))) { int n = (at + 1) % names.Length; Defer(() => SetValue(mod.File, entry, Enum.Parse(type, names[n]))); }
             }
+            else if (type == typeof(string) && IsSecret(entry) && !_msRevealed.Contains(entry))
+            {
+                // A key or password: never on screen (someone may be watching or streaming). Paste replaces it from the clipboard.
+                string value = (string)entry.BoxedValue ?? "";
+                GUILayout.Label(Mask(value), value.Length == 0 ? _sDim : _sBody, GUILayout.Width(150), GUILayout.Height(26));
+                if (GUILayout.Button("Paste", _sBtnSmall, GUILayout.Width(66), GUILayout.Height(26)))
+                {
+                    string pasted = (GUIUtility.systemCopyBuffer ?? "").Trim();
+                    if (pasted.Length > 0) Defer(() => { _msText.Remove(entry); SetValue(mod.File, entry, pasted); });
+                }
+                if (GUILayout.Button("Show", _sBtnSmall, GUILayout.Width(66), GUILayout.Height(26))) Defer(() => _msRevealed.Add(entry));
+            }
             else if (type == typeof(string))
             {
+                if (IsSecret(entry) && GUILayout.Button("Hide", _sBtnSmall, GUILayout.Width(50), GUILayout.Height(26))) Defer(() => _msRevealed.Remove(entry));
                 if (!_msText.TryGetValue(entry, out string text) || GUI.GetNameOfFocusedControl() != control) text = (string)entry.BoxedValue ?? "";
                 GUI.SetNextControlName(control);
                 string edited = GUILayout.TextField(text, 200, GUILayout.Width(300), GUILayout.Height(26));
@@ -240,6 +254,23 @@ namespace ModUpdater
 
             string description = entry.Description?.Description;
             if (!string.IsNullOrEmpty(description)) GUILayout.Label(description, _sDim);
+        }
+
+        private static readonly string[] SecretWords = { "apikey", "api_key", "token", "secret", "password" };
+
+        /// <summary>A text setting that holds a key or password, by its name (AICompanion's Jev ApiKey, for one).</summary>
+        private static bool IsSecret(ConfigEntryBase entry)
+        {
+            string key = entry.Definition.Key.ToLowerInvariant().Replace(" ", "");
+            return SecretWords.Any(w => key.Contains(w));
+        }
+
+        /// <summary>Dots and the last 4 characters, enough to tell which key it is.</summary>
+        private static string Mask(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "(none)";
+            if (value.Length <= 8) return new string('\u2022', 8);
+            return new string('\u2022', 8) + value.Substring(value.Length - 4);
         }
 
         private void DrawNumber(ModConfig mod, ConfigEntryBase entry, string control)

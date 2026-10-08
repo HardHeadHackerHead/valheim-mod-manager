@@ -34,6 +34,7 @@ never installed mods before. Do the install for them and explain what you're doi
 4. **Verify.** The installer prints each step. Afterwards check that these exist in the Valheim folder:
    - `BepInEx\core\BepInEx.dll`
    - `BepInEx\plugins\ScriptEngine.dll`
+   - `BepInEx\config\com.bepis.bepinex.scriptengine.cfg` containing `LoadOnStart = true` (without it the mods only load after pressing F6)
    - `BepInEx\scripts\ModUpdater.dll` (and its `.pdb`)
    - at least one `BepInEx\scripts\*.dll`
 
@@ -46,18 +47,20 @@ never installed mods before. Do the install for them and explain what you're doi
 | BepInEx | The standard Valheim mod loader. Mods can't run without it. |
 | ScriptEngine | Lets mods reload while the game is running (F6), so no restarts. |
 | ModUpdater | The mod manager. Press **F7** in-game to see installed vs. latest versions (and what other players have), and to download/reload updates. It updates itself too. |
-| CraftFromChests | The first mod: crafting stations use materials from nearby chests. |
+| The mods | Every mod in [valheim-mods](https://github.com/HardHeadHackerHead/valheim-mods): crafting and building from chests, a companion who plays like a player (press **J**), ghost build plans, gear slots, a party panel, bounties, a recycler, a bird trap and more. Its README describes each one. They can be switched off one by one in **F7**. |
 
 ## Using it
-- At a workbench you'll see **Chest lines** and **Range** buttons by the tabs. Lines draws a line to each chest in use; Range cycles 5/10/15/20/30 m.
-- To get new versions of the mods later: press **F7** in-game.
+- Press **F7** in-game for the mod manager: what is installed, updates, and every mod's settings.
+- The [valheim-mods README](https://github.com/HardHeadHackerHead/valheim-mods#readme) lists what each mod does and its keys (for example **J** for the companion).
+- Playing with friends: everyone installs the mods they use. The companion and the mods that add build pieces (Recycler, Bounty Board, Slot Machine, Bird Trap) must be on the **host** too, or the game deletes those companions and pieces.
 
 ## If something goes wrong
 - Read `<Valheim folder>\BepInEx\LogOutput.log`. It lists each mod that loaded and any errors.
 - "Can't read ... with that token": the token is wrong or expired. Ask the repo owner for a new one.
 - Mods not loading at all: make sure the game was launched through Steam, and that `winhttp.dll` exists in the Valheim folder.
+- Mods load only after pressing F6: set `LoadOnStart = true` under `[General]` in `BepInEx\config\com.bepis.bepinex.scriptengine.cfg` (the installer does this; run it again).
 - A game update can break mods until they're updated: ask the repo owner, then press F7.
-- To undo everything: delete `BepInEx`, `winhttp.dll`, `doorstop_config.ini`, `.doorstop_version`, and `doorstop_libs` from the Valheim folder (or "Verify integrity of game files" in Steam).
+- To undo everything: delete `BepInEx`, `winhttp.dll`, `doorstop_config.ini`, `.doorstop_version`, and `doorstop_libs` from the Valheim folder ("Verify integrity of game files" in Steam does not remove them).
 
 ## Notes for the agent
 - Windows only. Don't use this on Linux/Steam Deck.

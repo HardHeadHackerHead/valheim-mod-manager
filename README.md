@@ -33,7 +33,17 @@ An in-game mod manager for Valheim that finds mods on GitHub, installs them, kee
 
 ## 🚀 Install
 
-**Windows (Steam), easiest:** follow [`installer/INSTALL.md`](installer/INSTALL.md). It is written so an AI assistant can do it for you, or run `installer/install.ps1` yourself. It installs BepInEx, ScriptEngine, this manager and the main mods.
+**Windows (Steam), easiest:** close Valheim, open **PowerShell** and paste:
+
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Invoke-WebRequest "https://raw.githubusercontent.com/HardHeadHackerHead/valheim-mod-manager/main/installer/install.ps1" -OutFile "$env:TEMP\install-valheim-mods.ps1"
+powershell -ExecutionPolicy Bypass -File "$env:TEMP\install-valheim-mods.ps1"
+```
+
+It installs BepInEx, ScriptEngine (set to load the mods at startup), this manager and every mod in [valheim-mods](https://github.com/HardHeadHackerHead/valheim-mods).
+If the game is in another Steam library, add `-ValheimDir "D:\SteamLibrary\steamapps\common\Valheim"` to the last line. The script is short: read it
+first if you like. [`installer/INSTALL.md`](installer/INSTALL.md) has the same steps written so an AI assistant can do it for you, with checks and troubleshooting.
 
 **Linux (native game, standard or Flatpak Steam):** follow
 [`installer/INSTALL-LINUX.md`](installer/INSTALL-LINUX.md). From this repo, run
@@ -41,7 +51,12 @@ An in-game mod manager for Valheim that finds mods on GitHub, installs them, kee
 options to `./start_game_bepinex.sh %command%`. Install gameplay mods through F7,
 or supply `--mods-repo ../valheim-mods` to install their separate local checkout.
 
-**Already use BepInEx?** Copy `ModUpdater.dll` and `ModUpdater.pdb` from [`dist/`](dist/) into `BepInEx/scripts`, start the game and press **F7**.
+**Already use BepInEx?** Install [ScriptEngine](https://github.com/BepInEx/BepInEx.Debug/releases) (`BepInEx/plugins/ScriptEngine.dll`) and set
+`LoadOnStart = true` under `[General]` in `BepInEx/config/com.bepis.bepinex.scriptengine.cfg`. Copy `ModUpdater.dll` and `ModUpdater.pdb` from
+[`dist/`](dist/) into `BepInEx/scripts`, start the game and press **F7**: install the mods you want from **Browse**.
+
+**Playing with friends:** everyone installs the mods they use. Some must be on the **host** too (the companion, and mods that add build pieces,
+or the game deletes them): the [valheim-mods README](https://github.com/HardHeadHackerHead/valheim-mods#playing-together) lists them.
 
 ## 🗺️ A quick tour
 

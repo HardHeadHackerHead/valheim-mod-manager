@@ -115,6 +115,21 @@ if ((Test-Path $seDll) -and -not $Force) {
 }
 New-Item -ItemType Directory -Force (Join-Path $bepinex "scripts") | Out-Null
 
+# ScriptEngine only loads the mods in BepInEx\scripts at startup when LoadOnStart is on, and it is off by default: without this the
+# mods (the manager too) would load only after pressing F6. Keep any other settings the player has.
+$seCfg = Join-Path $bepinex "config\com.bepis.bepinex.scriptengine.cfg"
+New-Item -ItemType Directory -Force (Split-Path $seCfg) | Out-Null
+if (Test-Path $seCfg) {
+    $text = Get-Content $seCfg -Raw
+    if ($text -match '(?m)^LoadOnStart\s*=') { $text = $text -replace '(?m)^LoadOnStart\s*=.*$', 'LoadOnStart = true' }
+    elseif ($text -match '(?m)^\[General\]') { $text = $text -replace '(?m)^\[General\][ \t]*\r?$', "[General]`r`nLoadOnStart = true" }
+    else { $text = $text.TrimEnd() + "`r`n`r`n[General]`r`nLoadOnStart = true`r`n" }
+    Set-Content $seCfg $text -Encoding UTF8 -NoNewline
+} else {
+    Set-Content $seCfg "[General]`r`nLoadOnStart = true`r`n" -Encoding UTF8
+}
+Write-Host "ScriptEngine set to load the mods when the game starts."
+
 # ---- 5. ModUpdater ----------------------------------------------------------------------------
 Step "Configuring the mod manager (it already knows where the mods are; this just turns on automatic updates)"
 $configDir = Join-Path $bepinex "config"

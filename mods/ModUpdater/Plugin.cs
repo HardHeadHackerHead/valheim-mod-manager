@@ -68,7 +68,7 @@ namespace ModUpdater
             _uiScale = Config.Bind("General", "UiScale", 1f, "Size of the mod manager window (1 = normal, 1.25 = bigger).");
             _developerMode = Config.Bind("General", "DeveloperMode", false,
                 "For the person who builds the mods: 'Update all' and auto-update never overwrite a build whose version is the same or newer than GitHub's.");
-            _autoReload = Config.Bind("General", "AutoReloadRebuiltMods", true,
+            _autoReload = Config.Bind("General", "AutoReloadRebuiltMods", false,
                 "Developer Mode only: when you rebuild a mod, reload just that mod automatically (no F6, other mods untouched).");
 
             _scriptsDir = Path.Combine(Paths.BepInExRootPath, "scripts");

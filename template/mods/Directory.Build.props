@@ -53,6 +53,11 @@
     <Error Condition="!Exists('$(BepInExDir)/core/BepInEx.dll')" Text="BepInEx not found in $(ValheimDir). Install the mod loader first." />
   </Target>
 
+  <ItemGroup>
+    <!-- Shared code compiled into every mod (each gets its own private copy; see Shared/README.md). -->
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/All/**/*.cs" LinkBase="Shared" />
+  </ItemGroup>
+
   <!-- Set DeployToGame=false for validation or publishing without changing the running game. -->
   <Target Name="DeployToValheim" AfterTargets="Build" Condition="'$(DeployToGame)' == 'true'">
     <MakeDir Directories="$(DeployDir)" />

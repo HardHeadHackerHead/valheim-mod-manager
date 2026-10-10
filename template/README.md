@@ -19,6 +19,8 @@ your-repo/
   publish.ps1
   mods/
     Directory.Build.props       game paths + references (set VALHEIM_DIR or edit the path)
+    Shared/                     code more than one mod needs, compiled into each (see Shared/README.md)
+      All/                      ...into every mod (AiDisclosure.cs: says AI helped, as Thunderstore asks)
     YourMod/
       YourMod.csproj
       Plugin.cs                 needs const Guid, Name, Version
@@ -42,6 +44,11 @@ Use `dotnet build mods/ExampleMod -c Release` to build and deploy, then `claude 
 Run `pwsh -NoProfile -File ./publish.ps1` with PowerShell 7 to publish. Publishing
 only writes this repo's build output and `dist/`; it does not deploy to your game.
 For validation builds, pass `-p:DeployToGame=false`.
+
+## Sharing code between your mods
+Put it in `mods/Shared` (see its README): compiled into each mod, so players install one mod and nothing else, and two of your mods
+never clash over it. That is what most popular Valheim mods do (blaxxun-boop's ServerSync and PieceManager are merged into each mod's
+DLL); a separate library mod that players must install too (like Jotunn) is for big frameworks many mods build on.
 
 ## Telling others
 Anyone adds your feed in the mod manager (F7), "Mod sources": type `your-github-name/your-repo`

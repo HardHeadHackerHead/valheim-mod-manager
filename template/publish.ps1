@@ -24,6 +24,8 @@ foreach ($proj in Get-ChildItem (Join-Path $root "mods") -Directory) {
     $guid = [regex]::Match($src, 'const string Guid\s*=\s*"([^"]+)"').Groups[1].Value
     $name = [regex]::Match($src, 'const string Name\s*=\s*"([^"]+)"').Groups[1].Value
     $ver  = [regex]::Match($src, 'const string Version\s*=\s*"([^"]+)"').Groups[1].Value
+    # Optional: the mod's GUID before it changed (public const string OldGuid = "..."): the manager treats a copy under it as an older copy.
+    $oldGuid = [regex]::Match($src, 'const string OldGuid\s*=\s*"([^"]+)"').Groups[1].Value
     if (-not $guid -or -not $ver) { Write-Error "Couldn't find Guid/Version constants in $($proj.Name)"; exit 1 }
     $descFile = Join-Path $proj.FullName "DESCRIPTION.txt"
     $desc = if (Test-Path $descFile) { (Get-Content $descFile -Raw).Trim() } else { "" }
@@ -59,6 +61,7 @@ foreach ($proj in Get-ChildItem (Join-Path $root "mods") -Directory) {
     $manifest += [ordered]@{
         guid = $guid; name = $name; version = $ver; description = $desc; notes = $notes; restart = $restart; cover = $cover
         files = @("$($proj.Name).dll", "$($proj.Name).pdb")
+        was = @($oldGuid | Where-Object { $_ })
     }
 }
 

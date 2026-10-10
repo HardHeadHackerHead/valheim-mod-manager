@@ -13,11 +13,13 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <DebugType>full</DebugType> <!-- ScriptEngine needs the .pdb next to the DLL -->
+    <DebugType>full</DebugType> <!-- the .pdb next to the DLL gives line numbers in errors -->
     <DebugSymbols>true</DebugSymbols>
     <ManagedDir>$(ValheimDir)/valheim_Data/Managed</ManagedDir>
-    <BepInExDir>$(ValheimDir)/BepInEx</BepInExDir>
-    <!-- All mods, including the manager, deploy to scripts for hot reload. -->
+    <!-- BepInEx in a mod manager's profile (r2modman, Thunderstore Mod Manager): set BEPINEX_DIR to that profile's BepInEx folder. -->
+    <BepInExDir Condition="'$(BepInExDir)' == ''">$(BEPINEX_DIR)</BepInExDir>
+    <BepInExDir Condition="'$(BepInExDir)' == ''">$(ValheimDir)/BepInEx</BepInExDir>
+    <!-- All mods, including the manager, deploy to scripts: Claude Tools' dev loader (or ScriptEngine) loads and reloads them there. -->
     <DeployDir>$(BepInExDir)/scripts</DeployDir>
   </PropertyGroup>
 

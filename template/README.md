@@ -8,7 +8,7 @@ A feed is just a folder in a GitHub repo (default `dist`) that contains:
 
 | File | What |
 | --- | --- |
-| `manifest.json` | list of mods: guid, name, version, description, notes, files, optional `restart` |
+| `manifest.json` | list of mods: guid, name, version, description, notes, files, optional `restart`, optional `was` (the GUIDs a mod had before) |
 | `YourMod.dll`, `YourMod.pdb` | the built mod (the .pdb must sit next to the .dll) |
 
 You never write `manifest.json` by hand. `publish.ps1` builds every mod in `mods/` and writes the whole `dist` folder.
@@ -29,7 +29,8 @@ your-repo/
 ```
 
 ## Publishing
-1. Install BepInEx (+ ScriptEngine) for Valheim; set the environment variable `VALHEIM_DIR` to the game folder (or edit `Directory.Build.props`).
+1. Install BepInEx for Valheim and Claude Tools (its dev loader loads and reloads mods in `BepInEx/scripts`; ScriptEngine works too). Set
+   the environment variable `VALHEIM_DIR` to the game folder, and `BEPINEX_DIR` too if a mod manager keeps BepInEx in a profile folder.
 2. Make a mod: copy `mods/ExampleMod`, rename the folder, csproj, namespace, and change `Guid`, `Name`, `Version`.
 3. Run `powershell -File publish.ps1`.
 4. `git add dist; git commit; git push`.
@@ -37,7 +38,7 @@ your-repo/
 
 On native Linux (including Flatpak Steam), set `VALHEIM_DIR` to the folder
 containing `valheim.x86_64`; common Steam locations are detected automatically.
-Use `dotnet build mods/ExampleMod -c Release` to build and deploy, then press F6.
+Use `dotnet build mods/ExampleMod -c Release` to build and deploy, then `claude reload ExampleMod` in the game's console.
 Run `pwsh -NoProfile -File ./publish.ps1` with PowerShell 7 to publish. Publishing
 only writes this repo's build output and `dist/`; it does not deploy to your game.
 For validation builds, pass `-p:DeployToGame=false`.
@@ -47,7 +48,7 @@ Anyone adds your feed in the mod manager (F7), "Mod sources": type `your-github-
 (`owner/repo@branch:folder` if you use a different branch or folder). They click Install themselves; nothing from an extra source is installed automatically.
 
 ## Rules that keep things working
-- `Guid` must be unique and never change. Two feeds with the same Guid: the first feed in the player's list wins.
+- `Guid` must be unique and never change. If you must change it, keep the old one as `public const string OldGuid = "..."`: the manager then treats the old copy as an older version of the same mod (and asks for a restart), and move the settings file over in your mod (BepInEx names it after the GUID). Two feeds with the same Guid: the first feed in the player's list wins.
 - File names must be unique across mods; the manager skips a mod whose files clash with another.
 - Only `.dll` and `.pdb` files are installed, straight into `BepInEx/scripts`.
 - Add `RESTART_REQUIRED.txt` if reloading in-game breaks the mod (for example it registers prefabs at startup). The manager then says "Restart the game" instead of reloading it.

@@ -21,7 +21,13 @@ namespace ModUpdater
         private class LocalMod { public string Guid, Name, Version, Path; public bool InPlugins, Disabled; }
 
         /// <summary>One mod as described by manifest.json (written by publish.ps1).</summary>
-        private class RemoteMod { public string guid, name, version, description, notes, restart, cover; public string[] files; public Feed Feed; }
+        private class RemoteMod
+        {
+            public string guid, name, version, description, notes, restart, cover;
+            public string[] files;
+            public string[] was; // the GUIDs this mod had before (a copy installed under one of them is an older copy of this mod)
+            public Feed Feed;
+        }
 
         /// <summary>
         /// A place mods are published: a GitHub folder holding manifest.json plus the DLL/PDB files (what publish.ps1 makes).
@@ -280,6 +286,7 @@ namespace ModUpdater
                             restart = (string)m["restart"], // set when this mod can't be hot-reloaded safely: the reason, shown to the player
                             cover = CoverName((string)m["cover"]),
                             files = m["files"] != null ? m["files"].Select(f => (string)f).Where(IsPlainFileName).ToArray() : new string[0],
+                            was = m["was"] is JArray w ? w.Select(g => (string)g).Where(g => !string.IsNullOrEmpty(g)).ToArray() : new string[0],
                             Feed = feed,
                         };
                         if (string.IsNullOrEmpty(mod.guid) || string.IsNullOrEmpty(mod.name) || !guids.Add(mod.guid)) continue; // first feed wins
@@ -321,7 +328,7 @@ namespace ModUpdater
             var rows = new List<Row>();
             foreach (RemoteMod r in _remote)
             {
-                LocalMod local = LiveCopy(r.guid);
+                LocalMod local = LiveCopyOf(r);
                 var row = new Row
                 {
                     Name = r.name, Description = r.description, Notes = r.notes, RemoteVersion = r.version,
@@ -342,7 +349,7 @@ namespace ModUpdater
 
             // Mods we have that aren't in the repo (the loader itself, ScriptEngine, a mod still in development...).
             foreach (LocalMod l in _local)
-                if (!_remote.Any(r => r.guid == l.Guid))
+                if (!_remote.Any(r => r.guid == l.Guid || (r.was ?? new string[0]).Contains(l.Guid)))
                     rows.Add(new Row { Name = l.Name, LocalVersion = l.Version, Local = l, Status = l.Disabled ? Status.Disabled : Status.LocalOnly });
 
             _rows = rows;
@@ -355,12 +362,17 @@ namespace ModUpdater
         private LocalMod LiveCopy(string guid) =>
             _local.FirstOrDefault(l => l.Guid == guid && l.InPlugins && !l.Disabled) ?? _local.FirstOrDefault(l => l.Guid == guid);
 
+        /// <summary>The installed copy of a feed mod: under its GUID, or under a GUID it had before (an older copy of it).</summary>
+        private LocalMod LiveCopyOf(RemoteMod r) =>
+            LiveCopy(r.guid) ?? (r.was ?? new string[0]).Select(LiveCopy).FirstOrDefault(l => l != null);
+
         /// <summary>Where a mod's files go: next to its copy in BepInEx\plugins if that's where it lives, otherwise scripts.</summary>
-        private string InstallDir(string guid)
-        {
-            LocalMod live = LiveCopy(guid);
-            return live != null && live.InPlugins && !live.Disabled ? Path.GetDirectoryName(live.Path) : _scriptsDir;
-        }
+        private string InstallDir(string guid) => InstallDir(LiveCopy(guid));
+
+        private string InstallDir(RemoteMod r) => InstallDir(LiveCopyOf(r));
+
+        private string InstallDir(LocalMod live) =>
+            live != null && live.InPlugins && !live.Disabled ? Path.GetDirectoryName(live.Path) : _scriptsDir;
 
         /// <summary>The version BepInEx is running right now, or null if it isn't loaded.</summary>
         private static string RunningVersion(string guid) =>
@@ -372,7 +384,7 @@ namespace ModUpdater
 
         private bool FilesMatch(RemoteMod r)
         {
-            string dir = InstallDir(r.guid);
+            string dir = InstallDir(r);
             foreach (string file in r.files ?? new string[0])
             {
                 string path = Path.Combine(dir, file);
@@ -462,9 +474,10 @@ namespace ModUpdater
                 {
                     _statusLine = $"Downloading {mod.name}...";
                     // Update the mod where it lives. A copy in BepInEx\plugins is only loaded at startup, so that needs a restart.
-                    LocalMod live = LiveCopy(mod.guid);
+                    LocalMod live = LiveCopyOf(mod);
                     bool inPlugins = live != null && live.InPlugins && !live.Disabled;
-                    string dir = InstallDir(mod.guid);
+                    bool renamed = live != null && live.Guid != mod.guid; // installed under the GUID it had before
+                    string dir = InstallDir(mod);
                     foreach (string file in mod.files ?? new string[0])
                     {
                         string localPath = Path.Combine(dir, file);
@@ -496,8 +509,20 @@ namespace ModUpdater
                             catch (Exception e) { Logger.LogWarning($"Couldn't remove the unused copy {stray.Path}: {e.Message}"); }
                     }
 
+                    if (renamed)
+                    {
+                        // The old copy has another GUID, so nothing would stop both running: every file of it that the new one didn't just
+                        // replace goes aside, and only a restart loads the new one (the old one is still running until then).
+                        string dll = (mod.files ?? new string[0]).FirstOrDefault(f => f.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));
+                        string fresh = dll != null ? Path.GetFullPath(Path.Combine(dir, dll)) : null;
+                        foreach (LocalMod old in _local.Where(l => (mod.was ?? new string[0]).Contains(l.Guid)))
+                            if (!string.Equals(Path.GetFullPath(old.Path), fresh, StringComparison.OrdinalIgnoreCase))
+                                try { MoveAside(old.Path); } catch (Exception e) { Logger.LogWarning($"Couldn't move the old copy {old.Path} aside: {e.Message}"); }
+                        RestartPending.Add(live.Guid);
+                    }
+
                     installed.Add(mod.name);
-                    if (inPlugins || !string.IsNullOrEmpty(mod.restart)) { RestartPending.Add(mod.guid); needRestart.Add(mod.name); } // can't be hot-reloaded safely
+                    if (inPlugins || renamed || !string.IsNullOrEmpty(mod.restart)) { RestartPending.Add(mod.guid); needRestart.Add(mod.name); } // can't be hot-reloaded safely
                     else { ModFile modFile = FileOf(mod); if (modFile != null) toReload.Add(modFile); }
                 }
             }

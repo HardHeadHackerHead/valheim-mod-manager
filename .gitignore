@@ -4,7 +4,8 @@ __pycache__/
 .vs/
 
 # Local tooling state
-/.claude/   # (only this repo's own: template/.claude/settings.json is shared)
+# only this repo's own .claude/ (template/.claude/settings.json is shared)
+/.claude/
 .quadflow/
 
 # Never commit secrets

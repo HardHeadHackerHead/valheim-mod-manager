@@ -47,7 +47,9 @@ foreach ($proj in $projects) {
     $src = (Get-ChildItem $proj.FullName -Filter *.cs -Recurse | Where-Object { $_.FullName -notmatch '[\\/](obj|bin)[\\/]' } |
             ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
     $guid = [regex]::Match($src, 'const string Guid\s*=\s*"([^"]+)"').Groups[1].Value
-    $name = [regex]::Match($src, 'const string Name\s*=\s*"([^"]+)"').Groups[1].Value
+    # the plugin's own (public) Name: a mod may have other private Name constants (Parkour's bar)
+    $name = [regex]::Match($src, 'public const string Name\s*=\s*"([^"]+)"').Groups[1].Value
+    if (-not $name) { $name = [regex]::Match($src, 'const string Name\s*=\s*"([^"]+)"').Groups[1].Value }
     $ver  = [regex]::Match($src, 'const string Version\s*=\s*"([^"]+)"').Groups[1].Value
     # Optional: the mod's GUID before it changed (public const string OldGuid = "..."): the manager treats a copy under it as an older copy.
     $oldGuid = [regex]::Match($src, 'const string OldGuid\s*=\s*"([^"]+)"').Groups[1].Value

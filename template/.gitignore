@@ -2,8 +2,9 @@ bin/
 obj/
 .vs/
 
-# Local tooling state
-.claude/
+# Local tooling state (but .claude/settings.json is shared: it switches the Valheim skills on for this project)
+.claude/*
+!.claude/settings.json
 .quadflow/
 
 # Never commit secrets

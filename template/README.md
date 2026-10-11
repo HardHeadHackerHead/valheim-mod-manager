@@ -19,6 +19,8 @@ You never write `manifest.json` by hand. `publish.ps1` builds every mod in `mods
 ## Layout
 ```
 your-repo/
+  CLAUDE.md                   what an assistant needs to know about your mods (fill in the two paths)
+  .claude/settings.json       switches on the Valheim skills (the valheim-modding plugin) for this project only
   publish.ps1
   mods/
     Directory.Build.props       game paths + references (set VALHEIM_DIR or edit the path)

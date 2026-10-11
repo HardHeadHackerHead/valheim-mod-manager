@@ -42,7 +42,8 @@ your-repo/
 1. Install BepInEx for Valheim and Claude Tools (its dev loader loads and reloads mods in `BepInEx/scripts`; ScriptEngine works too). Set
    the environment variable `VALHEIM_DIR` to the game folder, and `BEPINEX_DIR` too if a mod manager keeps BepInEx in a profile folder.
 2. Make a mod: copy `mods/ExampleMod`, rename the folder, csproj, namespace, and change `Guid`, `Name`, `Version`.
-3. Run `powershell -File publish.ps1`.
+3. Run `powershell -File publish.ps1` (or `publish.ps1 -Mods MyMod` to build only that mod: the others stay exactly as they
+   are in `dist/`, so players see no update for a mod that didn't change).
 4. `git add dist; git commit; git push`.
 5. Raise `Version` for every change people should receive. The manager compares versions, and also notices rebuilt files.
 

@@ -1,14 +1,39 @@
-# Builds every mod (including the ModUpdater mod manager, which updates itself like any other mod) and copies
-# the results into .\dist plus a manifest.json, ready to commit and push to the private repo.
+# Builds the mods and writes .\dist: each mod's DLL and .pdb, its cover and dist\manifest.json (what the mod manager reads).
+# Commit and push dist/ to release.
+#
+#   .\publish.ps1                     every mod
+#   .\publish.ps1 -Mods MyMod         only these (comma-separated): every other mod's files and manifest entry stay exactly as they
+#                                     are, so players see no update for a mod that didn't change
+param(
+    [string[]]$Mods = @()
+)
 $root = $PSScriptRoot
 $dist = Join-Path $root "dist"
 New-Item -ItemType Directory -Force $dist | Out-Null
+$manifestFile = Join-Path $dist "manifest.json"
+
+# (-Mods A,B from another PowerShell arrives as one "A,B" string)
+$Mods = @($Mods | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$projects = @(Get-ChildItem (Join-Path $root "mods") -Directory | Where-Object { Test-Path (Join-Path $_.FullName "$($_.Name).csproj") })
+$unknown = @($Mods | Where-Object { $projects.Name -notcontains $_ })
+if ($unknown.Count -gt 0) { Write-Error "No such mod: $($unknown -join ', ') (the folder names in mods/)"; exit 1 }
+
+# Only some mods: the others keep the entry the manifest already has for them (found by their DLL's name)
+$kept = @{}
+if ($Mods.Count -gt 0) {
+    if (-not (Test-Path $manifestFile)) { Write-Error "No dist\manifest.json yet: run .\publish.ps1 once without -Mods"; exit 1 }
+    foreach ($m in (Get-Content $manifestFile -Raw -Encoding UTF8 | ConvertFrom-Json).mods) { $kept[[string]$m.files[0]] = $m }
+}
 
 $manifest = @()   # becomes dist\manifest.json, which the in-game mod manager reads
 
-foreach ($proj in Get-ChildItem (Join-Path $root "mods") -Directory) {
+foreach ($proj in $projects) {
+    if ($Mods.Count -gt 0 -and $Mods -notcontains $proj.Name) {
+        $entry = $kept["$($proj.Name).dll"]
+        if ($entry) { $manifest += $entry } else { Write-Warning "$($proj.Name) isn't in the manifest yet and wasn't built: it's left out" }
+        continue
+    }
     $csproj = Join-Path $proj.FullName "$($proj.Name).csproj"
-    if (-not (Test-Path $csproj)) { continue }
 
     Write-Host "Building $($proj.Name)..."
     dotnet build $csproj -c Release --nologo -v q -p:DeployToGame=false
@@ -66,7 +91,7 @@ foreach ($proj in Get-ChildItem (Join-Path $root "mods") -Directory) {
 }
 
 $json = ConvertTo-Json -InputObject ([ordered]@{ mods = @($manifest) }) -Depth 5
-[IO.File]::WriteAllText((Join-Path $dist "manifest.json"), $json, (New-Object Text.UTF8Encoding($false)))
+[IO.File]::WriteAllText($manifestFile, $json, (New-Object Text.UTF8Encoding($false)))
 
 Write-Host "`nReady in $dist :"
 Get-ChildItem $dist | Select-Object Name, Length, LastWriteTime

@@ -1,3 +1,9 @@
 {
-  "sources": []
+  "sources": [
+    {
+      "repo": "HardHeadHackerHead/valheim-claude-tools",
+      "name": "Claude Tools (Quads Lab)",
+      "about": "Lets an AI assistant like Claude Code see your game and help you make mods: skills, templates, modcheck, clash reports and safe reloading."
+    }
+  ]
 }

@@ -58,6 +58,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/All/**/*.cs" LinkBase="Shared" />
   </ItemGroup>
 
+  <!-- A mod with translations/English.json speaks the player's language: Shared/Translations.cs, and every translations/*.json built
+       into the DLL (as "translations/<Language>.json"). -->
+  <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)/translations/English.json')">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Translations.cs" Link="Shared/Translations.cs" />
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)/translations/*.json" LogicalName="translations/%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <!-- Set DeployToGame=false for validation or publishing without changing the running game. -->
   <Target Name="DeployToValheim" AfterTargets="Build" Condition="'$(DeployToGame)' == 'true'">
     <MakeDir Directories="$(DeployDir)" />

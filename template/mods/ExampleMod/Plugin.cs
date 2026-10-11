@@ -1,5 +1,7 @@
 using BepInEx;
 using UnityEngine;
+using YourName.Shared;
+using static YourName.Shared.Translations;
 
 namespace ExampleMod
 {
@@ -13,6 +15,7 @@ namespace ExampleMod
 
         private void Awake()
         {
+            Translations.Load(this);   // translations/*.json: its words in the player's language (Shared/Translations.cs)
             Logger.LogInfo($"{Name} {Version} loaded");
         }
 
@@ -20,10 +23,14 @@ namespace ExampleMod
         {
             // Example: press F9 in a world to see a message.
             if (Player.m_localPlayer != null && Input.GetKeyDown(KeyCode.F9))
-                Player.m_localPlayer.Message(MessageHud.MessageType.Center, "Hello from ExampleMod");
+                Player.m_localPlayer.Message(MessageHud.MessageType.Center, T("examplemod_hello", Name));   // translations/<Language>.json
         }
 
-        // If your mod patches the game with Harmony, undo it here so reloading in-game (F6) doesn't stack patches:
-        // private void OnDestroy() => _harmony?.UnpatchSelf();
+        private void OnDestroy()
+        {
+            Translations.Unload();
+            // If your mod patches the game with Harmony, undo it here so reloading in-game doesn't stack patches:
+            // _harmony?.UnpatchSelf();
+        }
     }
 }

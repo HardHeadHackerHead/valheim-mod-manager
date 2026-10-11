@@ -5,6 +5,8 @@ each mod gets its own private copy, so two of your mods never clash over it. One
 using it is rebuilt and released (raise its `Version`).
 
 - **`Shared/All/`**: compiled into every mod (see `Directory.Build.props`). Starts with `AiDisclosure.cs`.
+- **`Shared/Translations.cs`**: compiled into every mod that has a `translations/English.json`, with its `translations/*.json`
+  built in: the mod's words in the player's language (`T("yourmod_key")`; see the file's header and the valheim-mod-start skill).
 - **Anything else in `Shared/`**: linked by the mods that want it, in their csproj:
   `<ItemGroup><Compile Include="../Shared/ContainerAccess.cs" Link="Shared/ContainerAccess.cs" /></ItemGroup>`
 

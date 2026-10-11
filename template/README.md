@@ -1,5 +1,8 @@
 # Your own Valheim mods, shared through the mod manager
 
+> This starter kit comes with Claude Tools (`BepInEx/claude/templates/project`) and is `template/` in the
+> [mod manager repo](https://github.com/HardHeadHackerHead/valheim-mod-manager): the same files.
+
 This folder is a starter kit. Copy it into a new GitHub repo (public is easiest) and your mods can be installed and updated
 by anyone running the mod manager (F7), including people who also use someone else's mods.
 
@@ -27,6 +30,9 @@ your-repo/
       DESCRIPTION.txt           shown in the manager (optional)
       CHANGELOG.txt             top paragraph = "what's new" (optional)
       RESTART_REQUIRED.txt      optional: the mod can't be hot-reloaded; text = why
+      translations/             optional: English.json and one file per language (see Shared/Translations.cs)
+  tools/
+    check_translations.py     every language has the same keys and {0} placeholders as English
   dist/                         generated, commit it
 ```
 

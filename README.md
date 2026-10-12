@@ -11,6 +11,7 @@ An in-game mod manager for Valheim that finds mods on GitHub, installs them, kee
 ![C#](https://img.shields.io/badge/made%20with-C%23-68217a?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![Add your repo](https://img.shields.io/badge/add%20your%20repo-pull%20request-f2c75c?style=flat-square)](CONTRIBUTING.md)
+[![Buy me a coffee](https://img.shields.io/badge/buy%20me%20a-coffee-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/quadh)
 
 </div>
 
@@ -119,6 +120,15 @@ Installer regression checks: `python3 -m unittest discover -s tests -v`.
 The manager reads each source's `manifest.json` (mods, versions, files, optional restart note and cover) and its file list through GitHub's API. It compares versions and Git file hashes, downloads only what changed, and reloads just those mods through ScriptEngine. Covers are fetched once and cached by hash. Players share which mods they have through Valheim's own routed RPC messages, so no server mod is needed.
 
 </details>
+
+## ☕ Support my mods
+
+<a href="https://buymeacoffee.com/quadh"><img src="https://raw.githubusercontent.com/HardHeadHackerHead/valheim-mods/main/tools/modpages/support-banner.jpg" alt="Support my mods: buy me a coffee" width="100%"></a>
+
+The mod manager and every Quads Lab mod are free, and they stay that way. If one of them made your game better and you'd like to say thanks, a coffee
+helps me make new mods and keep improving the ones you already play. It's 100% optional, and always appreciated!
+
+**[☕ Buy me a coffee →](https://buymeacoffee.com/quadh)**
 
 ## 🤝 Contributing
 

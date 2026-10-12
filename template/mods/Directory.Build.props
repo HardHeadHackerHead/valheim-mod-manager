@@ -1,5 +1,10 @@
 <Project>
   <!-- Shared settings for mods on Windows and native Linux. -->
+  <!-- Optional, git-ignored, yours: Directory.Build.local.props next to this file, imported first. For example:
+         <Project><PropertyGroup><ValheimDir>D:/Games/Valheim</ValheimDir></PropertyGroup></Project>
+       (also BepInExDir, if a mod manager keeps BepInEx in a profile folder). Without VALHEIM_DIR or -p:ValheimDir. -->
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props" Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
+
   <PropertyGroup>
     <!-- Set VALHEIM_DIR or pass -p:ValheimDir for a custom Steam library. -->
     <ValheimDir Condition="'$(ValheimDir)' == ''">$(VALHEIM_DIR)</ValheimDir>

@@ -7,6 +7,9 @@ obj/
 !.claude/settings.json
 .quadflow/
 
+# Your game folder on this computer (mods/Directory.Build.local.props)
+Directory.Build.local.props
+
 # Never commit secrets
 *.token
 *.cfg

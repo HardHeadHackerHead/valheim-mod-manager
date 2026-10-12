@@ -23,7 +23,7 @@ your-repo/
   .claude/settings.json       switches on the Valheim skills (the valheim-modding plugin) for this project only
   publish.ps1
   mods/
-    Directory.Build.props       game paths + references (set VALHEIM_DIR or edit the path)
+    Directory.Build.props       game paths + references (set VALHEIM_DIR, or make Directory.Build.local.props)
     Shared/                     code more than one mod needs, compiled into each (see Shared/README.md)
       All/                      ...into every mod (AiDisclosure.cs: says AI helped, as Thunderstore asks)
     YourMod/
@@ -39,13 +39,21 @@ your-repo/
 ```
 
 ## Publishing
-1. Install BepInEx for Valheim and Claude Tools (its dev loader loads and reloads mods in `BepInEx/scripts`; ScriptEngine works too). Set
-   the environment variable `VALHEIM_DIR` to the game folder, and `BEPINEX_DIR` too if a mod manager keeps BepInEx in a profile folder.
+1. Install BepInEx for Valheim and Claude Tools (its dev loader loads and reloads mods in `BepInEx/scripts`; ScriptEngine works too). Tell
+   the build where the game is: set the environment variable `VALHEIM_DIR` to the game folder (and `BEPINEX_DIR` too if a mod manager keeps
+   BepInEx in a profile folder), or write `mods/Directory.Build.local.props` instead (see below).
 2. Make a mod: copy `mods/ExampleMod`, rename the folder, csproj, namespace, and change `Guid`, `Name`, `Version`.
+   `publish.ps1` refuses a mod that still has the template's names (`yourname`, `examplemod`); `publish.ps1 -Check` only checks them.
 3. Run `powershell -File publish.ps1` (or `publish.ps1 -Mods MyMod` to build only that mod: the others stay exactly as they
    are in `dist/`, so players see no update for a mod that didn't change).
 4. `git add dist; git commit; git push`.
 5. Raise `Version` for every change people should receive. The manager compares versions, and also notices rebuilt files.
+
+No environment variable? Make `mods/Directory.Build.local.props` with your game folder in it; the build reads it first, and git ignores it:
+
+```xml
+<Project><PropertyGroup><ValheimDir>D:/Games/Valheim</ValheimDir></PropertyGroup></Project>
+```
 
 On native Linux (including Flatpak Steam), set `VALHEIM_DIR` to the folder
 containing `valheim.x86_64`; common Steam locations are detected automatically.

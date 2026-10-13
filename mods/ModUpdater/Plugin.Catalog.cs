@@ -540,7 +540,7 @@ namespace ModUpdater
             BuildRows();
             BroadcastVersions();
             _statusLine = $"Updated: {string.Join(", ", installed)}" + (toReload.Count > 0 ? " (reloading)" : "");
-            if (needRestart.Count > 0) _statusLine += $"  Restart the game to finish: {string.Join(", ", needRestart)}.";
+            if (needRestart.Count > 0) _statusLine += $"  Restart the game to finish: {string.Join(", ", needRestart)} (or Force on a mod's card to reload it now).";
             Say(_statusLine);
 
             // Reload only the mods we just changed (the others keep running untouched).

@@ -183,10 +183,38 @@ namespace ModUpdater
             ReloadMods(changed); // last: this may replace the running copy of the manager
         }
 
+        /// <summary>
+        /// Why a copy waiting for a restart can't be reloaded even when the player asks for it (null: it can). The manifest's "restart"
+        /// is the author's caution and the player may overrule it (Force); these two would really go wrong: a copy in BepInEx\plugins
+        /// can't be unloaded, and an old copy still running under the mod's former id would run beside the new one.
+        /// </summary>
+        private string CantForce(LocalMod local)
+        {
+            if (local == null || local.InPlugins) return "it is in BepInEx\\plugins, which only loads when the game starts";
+            RemoteMod remote = _remote.FirstOrDefault(r => r.guid == local.Guid);
+            foreach (string old in remote?.was ?? new string[0])
+                if (Chainloader.PluginInfos.ContainsKey(old)) return "its older copy (under its old id) is still running until a restart";
+            return null;
+        }
+
+        /// <summary>The player chose to reload a mod that asked for a restart (two clicks): it stops waiting and reloads now.</summary>
+        private void ForceReload(LocalMod local, string name)
+        {
+            string why = CantForce(local);
+            if (why != null) { _statusLine = $"{name} can't be reloaded now: {why}."; return; }
+            RestartPending.Remove(local.Guid);
+            Logger.LogWarning($"Force reload of {local.Guid}: its manifest asks for a game restart");
+            ScanLocal();
+            BuildRows();
+            _statusLine = $"Reloaded {name} without a restart, as you asked. If it adds pieces or items, check they're all still there; restart when you can.";
+            Say(_statusLine);
+            ReloadMods(new List<ModFile> { new ModFile { Guid = local.Guid, Path = local.Path } });   // last: this may replace the running copy of the manager
+        }
+
         private void ReloadOne(Row row)
         {
             if (row.Local == null || row.Local.InPlugins || row.Local.Disabled) return;
-            if (NeedsRestart(row.Local.Guid)) { _statusLine = $"{row.Name} needs a game restart: it can't be reloaded while playing."; return; }
+            if (NeedsRestart(row.Local.Guid)) { _statusLine = $"{row.Name} asked for a game restart (Force on its card reloads it anyway)."; return; }
             ScanLocal();
             BuildRows();
             _statusLine = $"Reloaded {row.Name}";

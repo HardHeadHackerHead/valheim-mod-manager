@@ -28,6 +28,8 @@ namespace ModUpdater
         private Rect _window;
         private bool _windowPlaced;
         private Vector2 _scroll;
+        private string _confirmForce;       // which mod's "Force" (reload one that asked for a restart) is waiting for a second click
+        private float _confirmForceAt = -10f;
         private string _confirmRevert;      // which mod's "Use GitHub copy" is waiting for a second click
         private float _confirmRevertAt;
         private float _confirmReloadAllAt = -10f; // when "Reload all mods" was first clicked while a mod needing a restart is installed
@@ -610,11 +612,13 @@ namespace ModUpdater
             {
                 bool disabled = row.Status == Status.Disabled;
                 GUILayout.BeginHorizontal();
-                // A copy waiting for a restart can't be reloaded: the button stays, greyed out, with the reason on the card.
+                // A copy waiting for a restart reloads only when the player insists: Force, then Sure? (two clicks, the second within 5 s).
                 bool restartOnly = NeedsRestart(row.Local.Guid);
-                if (!disabled && Button("Reload", 74, false, !_busy && !restartOnly, small: true)) Defer(() => ReloadOne(row));
+                bool forcing = restartOnly && ForceButton(row.Local, row.Name, 74, !disabled);
+                if (!disabled && !restartOnly && Button("Reload", 74, false, !_busy, small: true)) Defer(() => ReloadOne(row));
                 if (Button(disabled ? "Enable" : "Disable", disabled ? 152 : 74, disabled, !_busy, small: !disabled)) Defer(() => SetEnabled(row, disabled));
                 GUILayout.EndHorizontal();
+                if (forcing) GUILayout.Label(ForceWarning, TextStyle(12, Warn, FontStyle.Normal, true));
             }
             string settingsGuid = row.Local != null ? row.Local.Guid : row.Remote != null ? row.Remote.guid : null;
             if (settingsGuid != null && HasSettings(settingsGuid) && Button("Settings", 152, false, true, true)) Defer(() => OpenSettingsFor(settingsGuid));
@@ -842,6 +846,25 @@ namespace ModUpdater
         // ---- widgets ---------------------------------------------------------------------------
 
         private void Defer(Action action) => _deferred = action;
+
+        private const string ForceWarning = "It asked for a restart. Reloading it now can lose things it adds (pieces, items) in areas that load meanwhile: safest in a test world. Click Sure? to reload it.";
+
+        /// <summary>
+        /// The Force button of a mod waiting for a restart (shown when show is true): the first click arms it for 5 s, the second reloads.
+        /// Greyed out when even a forced reload can't work (CantForce). Returns whether it is armed now (the caller shows ForceWarning).
+        /// </summary>
+        private bool ForceButton(LocalMod local, string name, float width, bool show, bool small = true)
+        {
+            bool sure = _confirmForce == local.Guid && Time.realtimeSinceStartup - _confirmForceAt < 5f;
+            if (!show) return false;
+            string label = sure ? "Sure?" : width >= 150 ? "Force reload" : "Force";
+            if (Button(label, width, false, !_busy && CantForce(local) == null, small))
+            {
+                if (sure) Defer(() => { _confirmForce = null; ForceReload(local, name); });
+                else Defer(() => { _confirmForce = local.Guid; _confirmForceAt = Time.realtimeSinceStartup; });
+            }
+            return sure;
+        }
 
         private bool Button(string text, float width, bool primary = false, bool enabled = true, bool small = false)
         {

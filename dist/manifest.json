@@ -3,9 +3,9 @@
                  {
                      "guid":  "com.dhack.modupdater",
                      "name":  "ModUpdater",
-                     "version":  "2.11.0",
+                     "version":  "2.12.0",
                      "description":  "The in-game mod manager (F7): browse mods from the sources you watch, install, update and disable them, and see what other players have.\n\nWhat it does\n- My mods lists what you have, updates first. Browse shows everything your sources offer, grouped by source.\n- Players shows who has which mods, and the mods other players have that you do not.\n- Sources: the main repos are built in, community sources come from pull requests to the manager\u0027s repo, and you can add your own.\n- Mod settings: change any loaded mod\u0027s settings in the game (switches, sliders, numbers, keys and colours), with a reset button for each.\n- Mods reload in-game with no restart; ones that cannot say so.",
-                     "notes":  "2.11.0: Mods that change their id (a feed lists the ids a mod had before, \"was\" in manifest.json) are recognised: a copy installed under its old id shows as an update rather than as an unknown mod beside a new one, the old copy is replaced (or moved aside), and the update finishes with a restart, so the old and new copies never run at the same time.",
+                     "notes":  "2.12.0: A mod waiting for a game restart can be reloaded anyway: Force on its card (or Force reload in its settings), then Sure? within 5 seconds. A warning says what can go wrong (a mod that adds pieces or items can lose some in areas that load while it reloads: safest in a test world). Not offered for a copy in BepInEx\\plugins, or while an older copy under the mod\u0027s old id is still running.",
                      "restart":  "",
                      "cover":  "ModUpdater.cover.png",
                      "files":  [

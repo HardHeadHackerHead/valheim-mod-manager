@@ -230,6 +230,7 @@ namespace ModUpdater
             if (!manifestStep && feed.Primary && !builtIn) _repoNeedsLogin = noLogin && (error.StartsWith("404") || error.StartsWith("401"));
             if (builtIn && (error.StartsWith("404") || error.StartsWith("401"))) return manifestStep ? "Nothing published here yet." : "Not reachable yet (404). It may not be public or published yet.";
             if (_repoNeedsLogin) _loginFeed = feed.Label;
+            if (error.StartsWith("403") || error.StartsWith("429")) _rateLimited = true;   // (automatic updating pauses on this)
             if (noLogin && (error.StartsWith("403") || error.StartsWith("429")))
                 return "GitHub's limit for requests without a login was reached (60 per hour). Wait a bit, or add a token to raise it.";
             if (manifestStep && error.StartsWith("404"))
@@ -460,7 +461,9 @@ namespace ModUpdater
             }
         }
 
-        private IEnumerator InstallRoutine(List<RemoteMod> mods)
+        /// <param name="viaRaw">Automatic updating: public files come from raw.githubusercontent.com (not counted against GitHub's hourly limit for
+        /// API requests) and are checked against the hash in GitHub's listing; a copy the cache hasn't caught up with yet is left for the next check.</param>
+        private IEnumerator InstallRoutine(List<RemoteMod> mods, bool viaRaw = false)
         {
             if (_busy || mods.Count == 0) yield break;
             _busy = true;
@@ -485,7 +488,15 @@ namespace ModUpdater
                             LocalSha(localPath) == sha) continue;
 
                         byte[] data = null; string error = null;
-                        yield return Get($"{mod.Feed.Api}/{file}?ref={mod.Feed.Branch}", "application/vnd.github.raw+json", (t, b, e) => { data = b; error = e; }, mod.Feed.Primary);
+                        if (viaRaw && !UsesToken(mod.Feed))
+                        {
+                            yield return Get(RawUrl(mod.Feed, file), "*/*", (t, b, e) => { data = b; error = e; }, false);
+                            if (error != null && (error.StartsWith("403") || error.StartsWith("429"))) { LimitHit(Time.unscaledTime, 0); failure = $"{file}: {error}"; yield break; }
+                            if (error == null && data != null && sha != null && GitBlobSha(data) != sha)
+                            { failure = $"{file}: GitHub's file cache doesn't have the new copy yet (it tries again at the next check)"; yield break; }
+                        }
+                        else
+                            yield return Get($"{mod.Feed.Api}/{file}?ref={mod.Feed.Branch}", "application/vnd.github.raw+json", (t, b, e) => { data = b; error = e; }, mod.Feed.Primary);
                         if (error != null || data == null) { failure = $"{file}: {error}"; yield break; }
 
                         try { ReplaceFile(localPath, data); }

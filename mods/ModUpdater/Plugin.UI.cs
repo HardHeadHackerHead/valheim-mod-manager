@@ -620,6 +620,14 @@ namespace ModUpdater
                 GUILayout.EndHorizontal();
                 if (forcing) GUILayout.Label(ForceWarning, TextStyle(12, Warn, FontStyle.Normal, true));
             }
+            // automatic updating, per mod: only for an installed copy of a mod a source publishes (never installs anything new)
+            if (row.Local != null && row.Remote != null && row.Status != Status.Disabled)
+            {
+                string autoGuid = row.Remote.guid;
+                bool on = AutoOn(autoGuid) || AutoOn(row.Local.Guid);
+                bool now = GUILayout.Toggle(on, _autoUpdate.Value ? "Auto update" : "Auto update (off in Manager)", _sToggle, GUILayout.Width(152));
+                if (now != on) { bool value = now; Defer(() => { SetAuto(autoGuid, value); if (!value && row.Local.Guid != autoGuid) SetAuto(row.Local.Guid, false); }); }
+            }
             string settingsGuid = row.Local != null ? row.Local.Guid : row.Remote != null ? row.Remote.guid : null;
             if (settingsGuid != null && HasSettings(settingsGuid) && Button("Settings", 152, false, true, true)) Defer(() => OpenSettingsFor(settingsGuid));
             if (details.Length > 0 && Button(_expanded.Contains(key) ? "Hide details" : "Details", 152, false, true, true))
@@ -770,6 +778,18 @@ namespace ModUpdater
             if (_developerMode.Value) Toggle(_autoReload, "Reload my mods automatically when I rebuild them", null);
 
             GUILayout.Space(6);
+            Toggle(_autoUpdate, "Update mods automatically (the ones with 'Auto update' on in My mods)",
+                "Looks for new versions every few minutes and updates those mods one at a time. A mod that needs a restart is downloaded and waits for it.");
+            if (_autoUpdate.Value)
+            {
+                Stepper("Check every", _autoMinutes, 1, "min");
+                Stepper("Between mods", _autoGapSeconds, 5, "s");
+                int count = AutoMods.Count;
+                GUILayout.Label(count == 0 ? "No mod has 'Auto update' on yet: switch it on for a mod in My mods." : $"{count} mod(s) update automatically. {_autoNote}", _sDim);
+                GUILayout.Space(4);
+            }
+
+            GUILayout.Space(6);
             GUILayout.BeginHorizontal();
             GUILayout.Label("Window size", _sBody, GUILayout.Width(110));
             foreach (var preset in new[] { new KeyValuePair<string, float>("Small", 0.85f), new KeyValuePair<string, float>("Normal", 1f), new KeyValuePair<string, float>("Large", 1.25f), new KeyValuePair<string, float>("Huge", 1.5f) })
@@ -820,6 +840,21 @@ namespace ModUpdater
                 _statusLine = "Could not open the mods folder: " + _scriptsDir;
             }
         }
+
+        /// <summary>A number setting with - and + buttons (kept inside the setting's own range). The change is applied from Update.</summary>
+        private void Stepper(string label, BepInEx.Configuration.ConfigEntry<int> entry, int step, string unit)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, _sBody, GUILayout.Width(110));
+            if (Button("-", 32, false, true, true)) Defer(() => entry.Value = Clamp(entry, entry.Value - step));
+            GUILayout.Label($"{entry.Value} {unit}", _sBody, GUILayout.Width(70));
+            if (Button("+", 32, false, true, true)) Defer(() => entry.Value = Clamp(entry, entry.Value + step));
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+        }
+
+        private static int Clamp(BepInEx.Configuration.ConfigEntry<int> entry, int value) =>
+            entry.Description.AcceptableValues is BepInEx.Configuration.AcceptableValueRange<int> range ? Math.Max(range.MinValue, Math.Min(range.MaxValue, value)) : value;
 
         /// <summary>A checkbox with a line of explanation under it. The change is applied from Update, not mid-draw.</summary>
         private void Toggle(BepInEx.Configuration.ConfigEntry<bool> entry, string label, string hint)

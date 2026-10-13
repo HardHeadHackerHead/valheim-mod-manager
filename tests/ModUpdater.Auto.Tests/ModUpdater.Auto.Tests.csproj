@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable></PropertyGroup>
+  <!-- The timing of automatic updating has no game in it: tested here on its own. -->
+  <ItemGroup><Compile Include="../../mods/ModUpdater/AutoPlan.cs" Link="AutoPlan.cs" /></ItemGroup>
+</Project>

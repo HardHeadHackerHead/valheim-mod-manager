@@ -67,6 +67,19 @@ or the game deletes them): the [valheim-mods README](https://github.com/HardHead
 4. **Update all** brings everything up to date. Most mods reload instantly.
 5. In **Players**, a friend's mods you are missing show up with **Install** (or **Add** if they use a source you do not watch yet).
 
+## 🔁 Auto update
+
+Switch **Auto update** on for a mod in *My mods*, and turn on **Update mods automatically** in the *Manager* tab. Every few minutes (5 by
+default, 2 at the least) the manager looks for a newer version of those mods and updates them **one at a time, 20 seconds apart** (both
+settings), the manager itself last. Only mods you have installed and switched on are touched: nothing new is installed, nothing is downgraded,
+and a mod you switched off stays off. A mod that can't be reloaded while the game runs is downloaded and waits for a restart, as a manual
+update does. Nothing happens on a loading screen, while you are dead, teleporting or in a cutscene.
+
+It is careful with GitHub: a game without a GitHub login may make 60 requests an hour to GitHub's API, and one full check is about seven of
+them. So the timed look only reads each source's `manifest.json` from raw.githubusercontent.com (which that limit doesn't count, and an
+unchanged file costs almost nothing), and only a real new version leads to a full check. If GitHub still says "too many requests", automatic
+checks pause (twice as long each time, up to an hour, or as long as GitHub asks) and the manager says so once.
+
 ## 🌍 Sources and sharing your own mods
 
 A **source** is just a GitHub folder (`dist/`) with a `manifest.json` and the mod DLLs. That is all the manager needs, so anyone can run one.

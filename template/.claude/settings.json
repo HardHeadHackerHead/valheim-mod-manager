@@ -1,13 +1,13 @@
 {
   "extraKnownMarketplaces": {
-    "valheim-claude-tools": {
+    "unity-claude-tools": {
       "source": {
         "source": "github",
-        "repo": "HardHeadHackerHead/valheim-claude-tools"
+        "repo": "HardHeadHackerHead/unity-claude-tools"
       }
     }
   },
   "enabledPlugins": {
-    "valheim-modding@valheim-claude-tools": true
+    "valheim-modding@unity-claude-tools": true
   }
 }
